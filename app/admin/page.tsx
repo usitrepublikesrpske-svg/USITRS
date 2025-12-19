@@ -21,6 +21,8 @@ const funFactCategories = [
   { value: "nauka", label: "Наука" },
 ]
 
+// Removed documentCategories as it's no longer used in the updates.
+
 export default function AdminPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [loginForm, setLoginForm] = useState({ username: "", password: "" })
@@ -47,10 +49,11 @@ export default function AdminPage() {
     icon: "trees",
   })
 
+  // Removed documentForm as it's no longer used in the updates.
+
   const [generatedCode, setGeneratedCode] = useState("")
   const [copied, setCopied] = useState(false)
 
-  // OVO JE KLJUČNA ISPRAVKA: Koristimo useEffect za localStorage
   useEffect(() => {
     const loggedIn = localStorage.getItem("adminLoggedIn")
     if (loggedIn === "true") {
@@ -91,6 +94,8 @@ export default function AdminPage() {
     })
   }
 
+  // Removed handleDocumentChange as it's no longer used in the updates.
+
   const generateNewsCode = () => {
     if (!newsForm.title.trim()) {
       alert("Наслов је обавезан!")
@@ -126,7 +131,7 @@ export default function AdminPage() {
 // NOVA VIJEST - Kopiraj CIJELI ovaj blok
 // =====================================================
 // FAJL: lib/news-data.tsx
-// LOKACIJA: Pronađi "// === DODAJ NOVE VIJESTI ISPOD OVOG KOMENTARA ===" 
+// LOKACIЈA: Pronađi "// === DODAJ NOVE VIJESTI ISPOD OVOG KOMENTARA ===" 
 //           i zalijepi ISPOD tog komentara
 // =====================================================
 
@@ -168,7 +173,7 @@ ${contentParagraphs || "        <p>Садржај вијести...</p>"}
 // NOVA ZANIMLJIVOST - Kopiraj CIJELI ovaj blok
 // =====================================================
 // FAJL: app/zanimljivosti/page.tsx
-// LOKACIJA: Pronađi "const funFacts = [" i zalijepi ODMAH NAKON [
+// LOKACIЈA: Pronađi "const funFacts = [" i zalijepi ODMAH NAKON [
 // =====================================================
 
   {
@@ -187,6 +192,8 @@ ${contentParagraphs || "        <p>Садржај вијести...</p>"}
 
     setGeneratedCode(code)
   }
+
+  // Removed generateDocumentCode as it's no longer used in the updates.
 
   const handleCopyCode = () => {
     navigator.clipboard.writeText(generatedCode)
@@ -212,7 +219,9 @@ ${contentParagraphs || "        <p>Садржај вијести...</p>"}
       category: "drvo",
       icon: "trees",
     })
+    // Removed resetting documentForm
     setGeneratedCode("")
+    setCopied(false) // Keep this to reset copy state
   }
 
   if (!isLoggedIn) {
@@ -221,7 +230,7 @@ ${contentParagraphs || "        <p>Садржај вијести...</p>"}
         <div className="bg-white p-10 rounded-xl shadow-2xl max-w-md w-full">
           <div className="flex justify-center mb-6">
             <div className="bg-green-800 p-4 rounded-full">
-              <Lock className="w-12 h-12 text-white" />
+              <Lock className="w-12 h-12 text-white" /> {/* Changed FileText to Lock */}
             </div>
           </div>
 
@@ -279,7 +288,7 @@ ${contentParagraphs || "        <p>Садржај вијести...</p>"}
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-4xl font-bold text-green-800 mb-2">Админ Панел</h1>
-            <p className="text-gray-600">Додај нове вијести и занимљивости на website</p>
+            <p className="text-gray-600">Додај нове вијести и занимљивости на website</p> {/* Updated description */}
           </div>
           <button
             onClick={handleLogout}
@@ -319,6 +328,7 @@ ${contentParagraphs || "        <p>Садржај вијести...</p>"}
             <Lightbulb className="w-5 h-5" />
             Додај Занимљивост
           </button>
+          {/* Removed the button for adding documents */}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">

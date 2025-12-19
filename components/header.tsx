@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname, useRouter } from "next/navigation"
@@ -8,30 +8,8 @@ import { Menu, X } from "lucide-react"
 
 export function Header() {
   const [isOpen, setIsOpen] = useState(false)
-  const [activeLink, setActiveLink] = useState("")
   const pathname = usePathname()
   const router = useRouter()
-
-  useEffect(() => {
-    const handleScroll = () => {
-      if (pathname !== "/") return
-
-      const sections = document.querySelectorAll("section[id]")
-      let current = ""
-
-      sections.forEach((section) => {
-        const sectionTop = section.offsetTop
-        if (window.scrollY >= sectionTop - 100) {
-          current = section.getAttribute("id") || ""
-        }
-      })
-
-      setActiveLink(current)
-    }
-
-    window.addEventListener("scroll", handleScroll)
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [pathname])
 
   const scrollToSection = (sectionId: string) => {
     setIsOpen(false)
@@ -60,13 +38,15 @@ export function Header() {
     { href: "/", label: "Почетна" },
     { href: "/news", label: "Вијести" },
     { href: "/zanimljivosti", label: "Занимљивости" },
+    { href: "/dokumenti", label: "Документи" },
+    {
+      href: "https://docs.google.com/document/d/150ASJXKKf4r81o2l8Lxx9yG1_A9hV9fw/edit?usp=sharing&ouid=106695366545194392969&rtpof=true&sd=true",
+      label: "Статут",
+      external: true,
+    },
   ]
 
-  const hashLinks = [
-    { id: "o-nama", label: "О нама" },
-    { id: "clanstvo", label: "Чланство" },
-    { id: "kontakt", label: "Контакт" },
-  ]
+  const hashLinks = [{ id: "kontakt", label: "Контакт" }]
 
   return (
     <header className="sticky top-0 z-50 bg-green-900 border-b border-green-950 shadow-md">
@@ -87,6 +67,20 @@ export function Header() {
             {regularLinks.map((link) => {
               const isActive =
                 (link.href === "/" && pathname === "/") || (link.href !== "/" && pathname.startsWith(link.href))
+
+              if (link.external) {
+                return (
+                  <a
+                    key={link.href}
+                    href={link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm font-semibold transition-colors relative pb-2 text-green-100 hover:text-white after:absolute after:bottom-0 after:left-0 after:h-0.5 after:bg-white after:transition-all after:duration-200 after:w-0 hover:after:w-full"
+                  >
+                    {link.label}
+                  </a>
+                )
+              }
 
               return (
                 <Link
@@ -138,16 +132,33 @@ export function Header() {
         {/* Mobile Navigation */}
         {isOpen && (
           <nav className="md:hidden pb-4 flex flex-col gap-2">
-            {regularLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={handleLinkClick}
-                className="text-sm font-semibold text-green-100 hover:text-white py-2 px-2 border-b border-green-800"
-              >
-                {link.label}
-              </Link>
-            ))}
+            {regularLinks.map((link) => {
+              if (link.external) {
+                return (
+                  <a
+                    key={link.href}
+                    href={link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={handleLinkClick}
+                    className="text-sm font-semibold text-green-100 hover:text-white py-2 px-2 border-b border-green-800"
+                  >
+                    {link.label}
+                  </a>
+                )
+              }
+
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={handleLinkClick}
+                  className="text-sm font-semibold text-green-100 hover:text-white py-2 px-2 border-b border-green-800"
+                >
+                  {link.label}
+                </Link>
+              )
+            })}
             {hashLinks.map((link) => (
               <button
                 key={link.id}
