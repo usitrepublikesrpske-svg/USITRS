@@ -1,8 +1,7 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Copy, Check, Newspaper, Lightbulb, LogOut, Lock } from "lucide-react"
 
 const newsCategories = [
@@ -51,6 +50,14 @@ export default function AdminPage() {
   const [generatedCode, setGeneratedCode] = useState("")
   const [copied, setCopied] = useState(false)
 
+  // OVO JE KLJUČNA ISPRAVKA: Koristimo useEffect za localStorage
+  useEffect(() => {
+    const loggedIn = localStorage.getItem("adminLoggedIn")
+    if (loggedIn === "true") {
+      setIsLoggedIn(true)
+    }
+  }, [])
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault()
     if (loginForm.username === "admin" && loginForm.password === "admin123") {
@@ -67,13 +74,6 @@ export default function AdminPage() {
     localStorage.removeItem("adminLoggedIn")
     setLoginForm({ username: "", password: "" })
   }
-
-  useState(() => {
-    const loggedIn = localStorage.getItem("adminLoggedIn")
-    if (loggedIn === "true") {
-      setIsLoggedIn(true)
-    }
-  })
 
   const handleNewsChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
