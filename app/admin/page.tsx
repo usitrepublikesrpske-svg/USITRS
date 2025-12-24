@@ -1,9 +1,16 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
-import { Copy, Check, Newspaper, Lightbulb, LogOut, Lock } from "lucide-react"
+import { useState } from "react"
+import { Copy, Newspaper, Lightbulb, LogOut, Lock } from "lucide-react"
 import { saveNewsToStorage } from "@/lib/news-data"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { CheckCircle2 } from "lucide-react"
 
 const newsCategories = [
   { value: "edukacija", label: "Едукација" },
@@ -23,7 +30,12 @@ const funFactCategories = [
 ]
 
 export default function AdminPage() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("adminLoggedIn") === "true"
+    }
+    return false
+  })
   const [loginForm, setLoginForm] = useState({ username: "", password: "" })
   const [loginError, setLoginError] = useState("")
 
@@ -52,16 +64,23 @@ export default function AdminPage() {
   const [generatedCode, setGeneratedCode] = useState("")
   const [copied, setCopied] = useState(false)
 
-  useEffect(() => {
-    const loggedIn = localStorage.getItem("adminLoggedIn")
-    if (loggedIn === "true") {
-      setIsLoggedIn(true)
+  const hashString = (str: string) => {
+    let hash = 0
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i)
+      hash = (hash << 5) - hash + char
+      hash = hash & hash
     }
-  }, [])
+    return hash.toString()
+  }
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault()
-    if (loginForm.username === "admin" && loginForm.password === "admin123") {
+    // Хеш вриједности за "predsjednik" и "usit2025"
+    const validUsernameHash = "-1704422303"
+    const validPasswordHash = "1780080909"
+
+    if (hashString(loginForm.username) === validUsernameHash && hashString(loginForm.password) === validPasswordHash) {
       setIsLoggedIn(true)
       setLoginError("")
       localStorage.setItem("adminLoggedIn", "true")
@@ -308,8 +327,8 @@ ${contentParagraphs}
 
           <form onSubmit={handleLogin} className="space-y-6">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Корисничко име</label>
-              <input
+              <Label className="block text-sm font-semibold text-gray-700 mb-2">Корисничко име</Label>
+              <Input
                 type="text"
                 value={loginForm.username}
                 onChange={(e) => setLoginForm({ ...loginForm, username: e.target.value })}
@@ -320,8 +339,8 @@ ${contentParagraphs}
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Лозинка</label>
-              <input
+              <Label className="block text-sm font-semibold text-gray-700 mb-2">Лозинка</Label>
+              <Input
                 type="password"
                 value={loginForm.password}
                 onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
@@ -337,15 +356,13 @@ ${contentParagraphs}
               </div>
             )}
 
-            <button
+            <Button
               type="submit"
               className="w-full bg-green-800 text-white font-semibold py-3 rounded-lg hover:bg-green-900 transition-colors"
             >
               Пријави се
-            </button>
+            </Button>
           </form>
-
-          <p className="text-xs text-gray-500 text-center mt-6">Тестни приступ: admin / admin123</p>
         </div>
       </main>
     )
@@ -359,55 +376,36 @@ ${contentParagraphs}
             <h1 className="text-4xl font-bold text-green-800 mb-2">Админ Панел</h1>
             <p className="text-gray-600">Додај нове вијести и занимљивости на website</p>
           </div>
-          <button
+          <Button
             onClick={handleLogout}
             className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
           >
             <LogOut className="w-4 h-4" />
             Одјави се
-          </button>
+          </Button>
         </div>
 
-        <div className="flex gap-4 mb-8">
-          <button
-            onClick={() => {
-              setActiveTab("vijesti")
-              resetForms()
-            }}
-            className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-colors ${
-              activeTab === "vijesti"
-                ? "bg-green-800 text-white"
-                : "bg-white text-green-800 border border-green-800 hover:bg-green-50"
-            }`}
-          >
-            <Newspaper className="w-5 h-5" />
-            Додај Вијест
-          </button>
-          <button
-            onClick={() => {
-              setActiveTab("zanimljivosti")
-              resetForms()
-            }}
-            className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-colors ${
-              activeTab === "zanimljivosti"
-                ? "bg-green-800 text-white"
-                : "bg-white text-green-800 border border-green-800 hover:bg-green-50"
-            }`}
-          >
-            <Lightbulb className="w-5 h-5" />
-            Додај Занимљивост
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          <div className="bg-white p-8 rounded-lg shadow-md">
-            {activeTab === "vijesti" ? (
-              <form className="space-y-6">
-                <h2 className="text-2xl font-bold text-green-800 mb-4">Нова Вијест</h2>
-
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex gap-4 mb-8">
+          <TabsList>
+            <TabsTrigger value="vijesti">
+              <Newspaper className="w-5 h-5 mr-2" />
+              Додај Вијест
+            </TabsTrigger>
+            <TabsTrigger value="zanimljivosti">
+              <Lightbulb className="w-5 h-5 mr-2" />
+              Додај Занимљивост
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="vijesti">
+            <Card>
+              <CardHeader>
+                <CardTitle>Нова Вијест</CardTitle>
+                <CardDescription>Попуните форму да бисте додали нову вијест</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Наслов вијести *</label>
-                  <input
+                  <Label className="block text-sm font-semibold text-gray-700 mb-2">Наслов вијести *</Label>
+                  <Input
                     type="text"
                     name="title"
                     value={newsForm.title}
@@ -418,10 +416,10 @@ ${contentParagraphs}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <Label className="block text-sm font-semibold text-gray-700 mb-2">
                     Кратак опис * (приказује се у листи вијести)
-                  </label>
-                  <textarea
+                  </Label>
+                  <Textarea
                     name="excerpt"
                     value={newsForm.excerpt}
                     onChange={handleNewsChange}
@@ -432,10 +430,10 @@ ${contentParagraphs}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <Label className="block text-sm font-semibold text-gray-700 mb-2">
                     Комплетан текст (приказује се када се отвори вијест)
-                  </label>
-                  <textarea
+                  </Label>
+                  <Textarea
                     name="content"
                     value={newsForm.content}
                     onChange={handleNewsChange}
@@ -450,8 +448,8 @@ ${contentParagraphs}
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Датум</label>
-                    <input
+                    <Label className="block text-sm font-semibold text-gray-700 mb-2">Датум</Label>
+                    <Input
                       type="text"
                       name="date"
                       value={newsForm.date}
@@ -461,7 +459,7 @@ ${contentParagraphs}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Категорија</label>
+                    <Label className="block text-sm font-semibold text-gray-700 mb-2">Категорија</Label>
                     <select
                       name="category"
                       value={newsForm.category}
@@ -478,8 +476,8 @@ ${contentParagraphs}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">URL главне слике</label>
-                  <input
+                  <Label className="block text-sm font-semibold text-gray-700 mb-2">URL главне слике</Label>
+                  <Input
                     type="text"
                     name="image"
                     value={newsForm.image}
@@ -491,10 +489,10 @@ ${contentParagraphs}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <Label className="block text-sm font-semibold text-gray-700 mb-2">
                     Галерија слика (опционално, максимално 6)
-                  </label>
-                  <textarea
+                  </Label>
+                  <Textarea
                     name="gallery"
                     value={newsForm.gallery}
                     onChange={handleNewsChange}
@@ -513,8 +511,8 @@ ${contentParagraphs}
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Коментари</label>
-                    <input
+                    <Label className="block text-sm font-semibold text-gray-700 mb-2">Коментари</Label>
+                    <Input
                       type="number"
                       name="comments"
                       value={newsForm.comments}
@@ -524,8 +522,8 @@ ${contentParagraphs}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Прегледи</label>
-                    <input
+                    <Label className="block text-sm font-semibold text-gray-700 mb-2">Прегледи</Label>
+                    <Input
                       type="number"
                       name="views"
                       value={newsForm.views}
@@ -537,27 +535,32 @@ ${contentParagraphs}
                 </div>
 
                 <div className="flex gap-3">
-                  <button
+                  <Button
                     onClick={generateNewsCode}
                     className="px-6 py-3 bg-green-800 text-white rounded-lg font-semibold hover:bg-green-900 transition-colors"
                   >
                     Генериши код
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={handleDirectAddNews}
                     className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
                   >
                     Директно додај вијест
-                  </button>
+                  </Button>
                 </div>
-              </form>
-            ) : (
-              <form className="space-y-6">
-                <h2 className="text-2xl font-bold text-green-800 mb-4">Нова Занимљивост</h2>
-
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="zanimljivosti">
+            <Card>
+              <CardHeader>
+                <CardTitle>Нова Занимљивост</CardTitle>
+                <CardDescription>Попуните форму да бисте додали нову занимљивост</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Наслов *</label>
-                  <input
+                  <Label className="block text-sm font-semibold text-gray-700 mb-2">Наслов *</Label>
+                  <Input
                     type="text"
                     name="title"
                     value={funFactForm.title}
@@ -568,8 +571,8 @@ ${contentParagraphs}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Занимљивост *</label>
-                  <textarea
+                  <Label className="block text-sm font-semibold text-gray-700 mb-2">Занимљивост *</Label>
+                  <Textarea
                     name="fact"
                     value={funFactForm.fact}
                     onChange={handleFunFactChange}
@@ -580,8 +583,8 @@ ${contentParagraphs}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Извор (опционо)</label>
-                  <input
+                  <Label className="block text-sm font-semibold text-gray-700 mb-2">Извор (опционо)</Label>
+                  <Input
                     type="text"
                     name="source"
                     value={funFactForm.source}
@@ -593,7 +596,7 @@ ${contentParagraphs}
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Категорија</label>
+                    <Label className="block text-sm font-semibold text-gray-700 mb-2">Категорија</Label>
                     <select
                       name="category"
                       value={funFactForm.category}
@@ -608,7 +611,7 @@ ${contentParagraphs}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Иконица</label>
+                    <Label className="block text-sm font-semibold text-gray-700 mb-2">Иконица</Label>
                     <select
                       name="icon"
                       value={funFactForm.icon}
@@ -626,87 +629,87 @@ ${contentParagraphs}
                 </div>
 
                 <div className="flex gap-3">
-                  <button
+                  <Button
                     onClick={generateFunFactCode}
                     className="px-6 py-3 bg-green-800 text-white rounded-lg font-semibold hover:bg-green-900 transition-colors"
                   >
                     Генериши код
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={handleDirectAddFunFact}
                     className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
                   >
                     Директно додај занимљивост
-                  </button>
+                  </Button>
                 </div>
-              </form>
-            )}
-          </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
 
-          <div className="bg-white p-8 rounded-lg shadow-md">
-            <h2 className="text-xl font-bold text-green-800 mb-4">Генерисани код</h2>
+        <div className="bg-white p-8 rounded-lg shadow-md">
+          <h2 className="text-xl font-bold text-green-800 mb-4">Генерисани код</h2>
 
-            {generatedCode ? (
-              <>
-                <div className="relative">
-                  <pre className="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto text-sm max-h-96 overflow-y-auto font-mono whitespace-pre-wrap">
-                    {generatedCode}
-                  </pre>
+          {generatedCode ? (
+            <>
+              <div className="relative">
+                <pre className="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto text-sm max-h-96 overflow-y-auto font-mono whitespace-pre-wrap">
+                  {generatedCode}
+                </pre>
 
-                  <button
-                    onClick={handleCopyCode}
-                    className="absolute top-2 right-2 flex items-center gap-2 bg-green-700 hover:bg-green-800 text-white px-3 py-1 rounded transition-colors text-sm"
-                  >
-                    {copied ? (
-                      <>
-                        <Check className="w-4 h-4" />
-                        Копирано!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-4 h-4" />
-                        Копирај
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg text-sm">
-                  <h3 className="font-semibold text-green-800 mb-2">Упутство за копирање:</h3>
-                  <ol className="text-green-700 space-y-2 list-decimal list-inside">
-                    <li>
-                      Кликни <strong>"Копирај"</strong> дугме горе
-                    </li>
-                    <li>
-                      Отвори фајл{" "}
-                      <code className="bg-white px-1 rounded font-bold">
-                        {activeTab === "vijesti" ? "lib/news-data.tsx" : "app/zanimljivosti/page.tsx"}
-                      </code>{" "}
-                      у VS Code
-                    </li>
-                    <li>
-                      Пронађи коментар{" "}
-                      <code className="bg-white px-1 rounded">
-                        {activeTab === "vijesti"
-                          ? "// === DODAJ NOVE VIJESTI ISPOD OVOG KOMENTARA ==="
-                          : "const funFacts = ["}
-                      </code>
-                    </li>
-                    <li>
-                      Залијепи код <strong>ИСПОД</strong> тог коментара
-                    </li>
-                    <li>
-                      Сачувај фајл (<strong>Ctrl+S</strong>)
-                    </li>
-                  </ol>
-                </div>
-              </>
-            ) : (
-              <div className="flex items-center justify-center h-64 text-gray-400">
-                <p>Попуни форму и генериши код...</p>
+                <Button
+                  onClick={handleCopyCode}
+                  className="absolute top-2 right-2 flex items-center gap-2 bg-green-700 hover:bg-green-800 text-white px-3 py-1 rounded transition-colors text-sm"
+                >
+                  {copied ? (
+                    <>
+                      <CheckCircle2 className="w-4 h-4" />
+                      Копирано!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4" />
+                      Копирај
+                    </>
+                  )}
+                </Button>
               </div>
-            )}
-          </div>
+
+              <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg text-sm">
+                <h3 className="font-semibold text-green-800 mb-2">Упутство за копирање:</h3>
+                <ol className="text-green-700 space-y-2 list-decimal list-inside">
+                  <li>
+                    Кликни <strong>"Копирај"</strong> дугме горе
+                  </li>
+                  <li>
+                    Отвори фајл{" "}
+                    <code className="bg-white px-1 rounded font-bold">
+                      {activeTab === "vijesti" ? "lib/news-data.tsx" : "app/zanimljivosti/page.tsx"}
+                    </code>{" "}
+                    у VS Code
+                  </li>
+                  <li>
+                    Пронађи коментар{" "}
+                    <code className="bg-white px-1 rounded">
+                      {activeTab === "vijesti"
+                        ? "// === DODAJ NOVE VIJESTI ISPOD OVOG KOMENTARA ==="
+                        : "const funFacts = ["}
+                    </code>
+                  </li>
+                  <li>
+                    Залијепи код <strong>ИСПОД</strong> тог коментара
+                  </li>
+                  <li>
+                    Сачувај фајл (<strong>Ctrl+S</strong>)
+                  </li>
+                </ol>
+              </div>
+            </>
+          ) : (
+            <div className="flex items-center justify-center h-64 text-gray-400">
+              <p>Попуни форму и генериши код...</p>
+            </div>
+          )}
         </div>
 
         <div className="mt-12 bg-blue-50 border border-blue-200 rounded-lg p-6">
