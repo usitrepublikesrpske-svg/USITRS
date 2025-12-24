@@ -5,6 +5,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { newsItems, getNewsBySlug } from "@/lib/news-data"
+import { useState } from "react"
 
 const newsArticles: Record<
   string,
@@ -18,6 +19,7 @@ const newsArticles: Record<
     views: number
     prev?: { title: string; slug: string }
     next?: { title: string; slug: string }
+    gallery?: string[]
   }
 > = {
   "news-1": {
@@ -102,6 +104,7 @@ const newsArticles: Record<
         </p>
       </div>
     ),
+    gallery: ["/gallery-image-1.jpg", "/gallery-image-2.jpg", "/gallery-image-3.jpg"],
   },
   "news-3": {
     title: "Studija o biodiverzitetu u starim šumama",
@@ -140,9 +143,9 @@ export default async function NewsArticlePage({ params }: NewsArticlePageProps) 
     return (
       <main className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center py-12">
-          <h1 className="text-2xl font-bold text-gray-800 mb-4">Članak nije pronađen</h1>
+          <h1 className="text-2xl font-bold text-gray-800 mb-4">Чланак није пронађен</h1>
           <Link href="/news" className="text-green-800 hover:underline">
-            ← Nazad na vijesti
+            ← Назад на вијести
           </Link>
         </div>
       </main>
@@ -160,11 +163,11 @@ export default async function NewsArticlePage({ params }: NewsArticlePageProps) 
         <div className="max-w-4xl mx-auto px-6">
           <div className="flex items-center gap-2 text-sm flex-wrap">
             <Link href="/" className="text-gray-600 hover:text-green-800">
-              Početna
+              Почетна
             </Link>
             <span className="text-gray-400">→</span>
             <Link href="/news" className="text-gray-600 hover:text-green-800">
-              Vijesti
+              Вијести
             </Link>
             <span className="text-gray-400">→</span>
             <span className="text-green-800 font-semibold">{article.title}</span>
@@ -198,11 +201,19 @@ export default async function NewsArticlePage({ params }: NewsArticlePageProps) 
 
             <div className="flex gap-4 mb-8 pb-8 border-b border-gray-200 text-sm text-gray-600">
               <span>{article.date}</span>
-              <span>{article.comments} komentara</span>
-              <span>{article.views} pregleda</span>
+              <span>{article.comments} коментара</span>
+              <span>{article.views} прегледа</span>
             </div>
 
             <div className="prose prose-lg max-w-none text-gray-700">{article.content}</div>
+
+            {/* Gallery */}
+            {article.gallery && article.gallery.length > 0 && (
+              <div className="mt-12 pt-8 border-t border-gray-200">
+                <h2 className="text-2xl font-bold text-green-800 mb-6">Галерија</h2>
+                <GalleryGrid images={article.gallery} />
+              </div>
+            )}
 
             {/* Navigation */}
             <div className="flex gap-4 mt-12 pt-8 border-t border-gray-200 flex-col md:flex-row">
@@ -212,7 +223,7 @@ export default async function NewsArticlePage({ params }: NewsArticlePageProps) 
                   className="flex items-center gap-2 px-6 py-3 bg-green-800 text-white rounded-lg hover:bg-green-700 transition-colors"
                 >
                   <ChevronLeft className="w-4 h-4" />
-                  Prethodna vijest
+                  Претходна вијест
                 </Link>
               ) : (
                 <div></div>
@@ -223,7 +234,7 @@ export default async function NewsArticlePage({ params }: NewsArticlePageProps) 
                   href={`/news/${nextArticle.slug}`}
                   className="flex items-center gap-2 px-6 py-3 bg-green-800 text-white rounded-lg hover:bg-green-700 transition-colors md:ml-auto"
                 >
-                  Sledeća vijest
+                  Слиједећа вијест
                   <ChevronRight className="w-4 h-4" />
                 </Link>
               ) : (
@@ -234,5 +245,48 @@ export default async function NewsArticlePage({ params }: NewsArticlePageProps) 
         </div>
       </article>
     </main>
+  )
+}
+
+function GalleryGrid({ images }: { images: string[] }) {
+  const [selectedImage, setSelectedImage] = useState<string | null>(null)
+
+  return (
+    <>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        {images.map((image, index) => (
+          <button
+            key={index}
+            onClick={() => setSelectedImage(image)}
+            className="relative aspect-video bg-gray-200 rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
+          >
+            <Image
+              src={image || "/placeholder.svg"}
+              alt={`Галерија слика ${index + 1}`}
+              fill
+              className="object-cover"
+            />
+          </button>
+        ))}
+      </div>
+
+      {/* Lightbox */}
+      {selectedImage && (
+        <div
+          className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
+          onClick={() => setSelectedImage(null)}
+        >
+          <button
+            className="absolute top-4 right-4 text-white text-4xl hover:text-gray-300"
+            onClick={() => setSelectedImage(null)}
+          >
+            ×
+          </button>
+          <div className="relative w-full max-w-5xl aspect-video">
+            <Image src={selectedImage || "/placeholder.svg"} alt="Увећана слика" fill className="object-contain" />
+          </div>
+        </div>
+      )}
+    </>
   )
 }

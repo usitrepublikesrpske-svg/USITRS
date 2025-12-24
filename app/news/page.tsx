@@ -1,25 +1,36 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { ChevronLeft, ChevronRight, MessageCircle, Eye } from "lucide-react"
-import { newsItems } from "@/lib/news-data"
+import { newsItems, getNewsFromStorage } from "@/lib/news-data"
+import type { NewsItem } from "@/lib/news-data"
 
 const ITEMS_PER_PAGE = 3
 
 export default function NewsPage() {
-  const [filtered, setFiltered] = useState(newsItems)
+  const [allNews, setAllNews] = useState<NewsItem[]>(newsItems)
+  const [filtered, setFiltered] = useState<NewsItem[]>(newsItems)
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [sortBy, setSortBy] = useState("newest")
   const [currentPage, setCurrentPage] = useState(1)
 
+  useEffect(() => {
+    const hardcodedNews = newsItems
+    const storedNews = getNewsFromStorage()
+    const combined = [...storedNews, ...hardcodedNews]
+    const uniqueNews = Array.from(new Map(combined.map((item) => [item.id, item])).values())
+    setAllNews(uniqueNews)
+    setFiltered(uniqueNews)
+  }, [])
+
   const handleCategoryFilter = (category: string) => {
     setSelectedCategory(category)
     setCurrentPage(1)
-    let result = [...newsItems]
+    let result = [...allNews]
     if (category !== "all") {
-      result = newsItems.filter((item) => item.category === category)
+      result = allNews.filter((item) => item.category === category)
     }
     setFiltered(result)
   }

@@ -39,11 +39,6 @@ export function Header() {
     { href: "/news", label: "Вијести" },
     { href: "/zanimljivosti", label: "Занимљивости" },
     { href: "/dokumenti", label: "Документи" },
-    {
-      href: "https://docs.google.com/document/d/150ASJXKKf4r81o2l8Lxx9yG1_A9hV9fw/edit?usp=sharing&ouid=106695366545194392969&rtpof=true&sd=true",
-      label: "Статут",
-      external: true,
-    },
   ]
 
   const hashLinks = [{ id: "kontakt", label: "Контакт" }]
@@ -67,20 +62,6 @@ export function Header() {
             {regularLinks.map((link) => {
               const isActive =
                 (link.href === "/" && pathname === "/") || (link.href !== "/" && pathname.startsWith(link.href))
-
-              if (link.external) {
-                return (
-                  <a
-                    key={link.href}
-                    href={link.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm font-semibold transition-colors relative pb-2 text-green-100 hover:text-white after:absolute after:bottom-0 after:left-0 after:h-0.5 after:bg-white after:transition-all after:duration-200 after:w-0 hover:after:w-full"
-                  >
-                    {link.label}
-                  </a>
-                )
-              }
 
               return (
                 <Link
@@ -132,33 +113,16 @@ export function Header() {
         {/* Mobile Navigation */}
         {isOpen && (
           <nav className="md:hidden pb-4 flex flex-col gap-2">
-            {regularLinks.map((link) => {
-              if (link.external) {
-                return (
-                  <a
-                    key={link.href}
-                    href={link.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={handleLinkClick}
-                    className="text-sm font-semibold text-green-100 hover:text-white py-2 px-2 border-b border-green-800"
-                  >
-                    {link.label}
-                  </a>
-                )
-              }
-
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={handleLinkClick}
-                  className="text-sm font-semibold text-green-100 hover:text-white py-2 px-2 border-b border-green-800"
-                >
-                  {link.label}
-                </Link>
-              )
-            })}
+            {regularLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={handleLinkClick}
+                className="text-sm font-semibold text-green-100 hover:text-white py-2 px-2 border-b border-green-800"
+              >
+                {link.label}
+              </Link>
+            ))}
             {hashLinks.map((link) => (
               <button
                 key={link.id}

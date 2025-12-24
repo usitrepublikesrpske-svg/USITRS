@@ -3,6 +3,7 @@
 import type React from "react"
 import { useState, useEffect } from "react"
 import { Copy, Check, Newspaper, Lightbulb, LogOut, Lock } from "lucide-react"
+import { saveNewsToStorage } from "@/lib/news-data"
 
 const newsCategories = [
   { value: "edukacija", label: "Едукација" },
@@ -21,8 +22,6 @@ const funFactCategories = [
   { value: "nauka", label: "Наука" },
 ]
 
-// Removed documentCategories as it's no longer used in the updates.
-
 export default function AdminPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [loginForm, setLoginForm] = useState({ username: "", password: "" })
@@ -37,6 +36,7 @@ export default function AdminPage() {
     date: new Date().toLocaleDateString("sr-Latn-RS", { day: "numeric", month: "long", year: "numeric" }) + ".",
     category: "edukacija",
     image: "/forestry-news.jpg",
+    gallery: "",
     comments: 0,
     views: 0,
   })
@@ -48,8 +48,6 @@ export default function AdminPage() {
     category: "drvo",
     icon: "trees",
   })
-
-  // Removed documentForm as it's no longer used in the updates.
 
   const [generatedCode, setGeneratedCode] = useState("")
   const [copied, setCopied] = useState(false)
@@ -94,8 +92,6 @@ export default function AdminPage() {
     })
   }
 
-  // Removed handleDocumentChange as it's no longer used in the updates.
-
   const generateNewsCode = () => {
     if (!newsForm.title.trim()) {
       alert("Наслов је обавезан!")
@@ -118,44 +114,38 @@ export default function AdminPage() {
       .replace(/[^\w-]/g, "")
       .substring(0, 50)
 
-    const categoryLabel = newsCategories.find((c) => c.value === newsForm.category)?.label || newsForm.category
-    const escapeStr = (text: string) => text.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n")
+    const categoryLabel = newsCategories.find((c) => c.value === newsForm.category)?.label || "Edukacija"
+
+    const galleryArray = newsForm.gallery
+      .split(",")
+      .map((url) => url.trim())
+      .filter((url) => url.length > 0)
+    const galleryCode = galleryArray.length > 0 ? `\n    gallery: ${JSON.stringify(galleryArray)},` : ""
 
     const contentParagraphs = newsForm.content
       .split("\n\n")
-      .filter((p) => p.trim())
-      .map((p) => `        <p>${escapeStr(p.trim())}</p>`)
+      .map((para) => para.trim())
+      .filter((para) => para.length > 0)
+      .map((para) => `        <p>\n          ${para.replace(/\n/g, "\n          ")}\n        </p>`)
       .join("\n")
 
-    const code = `// =====================================================
-// NOVA VIJEST - Kopiraj CIJELI ovaj blok
-// =====================================================
-// FAJL: lib/news-data.tsx
-// LOKACIЈA: Pronađi "// === DODAJ NOVE VIJESTI ISPOD OVOG KOMENTARA ===" 
-//           i zalijepi ISPOD tog komentara
-// =====================================================
-
-  {
+    const code = `{
     id: ${Date.now()},
-    title: "${escapeStr(newsForm.title)}",
-    excerpt: "${escapeStr(newsForm.excerpt)}",
+    title: "${newsForm.title.replace(/"/g, '\\"')}",
+    excerpt: "${newsForm.excerpt.replace(/"/g, '\\"')}",
     date: "${newsForm.date}",
     category: "${newsForm.category}",
     categoryLabel: "${categoryLabel}",
     image: "${newsForm.image}",
     slug: "${slug}",
     comments: ${newsForm.comments},
-    views: ${newsForm.views},
+    views: ${newsForm.views},${galleryCode}
     content: (
       <div className="space-y-6">
-${contentParagraphs || "        <p>Садржај вијести...</p>"}
+${contentParagraphs}
       </div>
     ),
-  },
-
-// =====================================================
-// KRAJ NOVE VIJESTI
-// =====================================================`
+  },`
 
     setGeneratedCode(code)
   }
@@ -173,7 +163,7 @@ ${contentParagraphs || "        <p>Садржај вијести...</p>"}
 // NOVA ZANIMLJIVOST - Kopiraj CIJELI ovaj blok
 // =====================================================
 // FAJL: app/zanimljivosti/page.tsx
-// LOKACIЈA: Pronađi "const funFacts = [" i zalijepi ODMAH NAKON [
+// LOKACIЈA: Pronađи "const funFacts = [" и zalijepi ODMAH NAKON [
 // =====================================================
 
   {
@@ -193,8 +183,6 @@ ${contentParagraphs || "        <p>Садржај вијести...</p>"}
     setGeneratedCode(code)
   }
 
-  // Removed generateDocumentCode as it's no longer used in the updates.
-
   const handleCopyCode = () => {
     navigator.clipboard.writeText(generatedCode)
     setCopied(true)
@@ -209,6 +197,7 @@ ${contentParagraphs || "        <p>Садржај вијести...</p>"}
       date: new Date().toLocaleDateString("sr-Latn-RS", { day: "numeric", month: "long", year: "numeric" }) + ".",
       category: "edukacija",
       image: "/forestry-news.jpg",
+      gallery: "",
       comments: 0,
       views: 0,
     })
@@ -219,9 +208,89 @@ ${contentParagraphs || "        <p>Садржај вијести...</p>"}
       category: "drvo",
       icon: "trees",
     })
-    // Removed resetting documentForm
     setGeneratedCode("")
-    setCopied(false) // Keep this to reset copy state
+    setCopied(false)
+  }
+
+  const handleDirectAddNews = () => {
+    if (!newsForm.title || !newsForm.excerpt) {
+      alert("Молимо попуните обавезна поља (Наслов и Кратак опис)")
+      return
+    }
+
+    const galleryUrls = newsForm.gallery
+      ? newsForm.gallery
+          .split(",")
+          .map((url) => url.trim())
+          .filter((url) => url.length > 0)
+          .slice(0, 6)
+      : []
+
+    const slug = newsForm.title
+      .toLowerCase()
+      .replace(/[čćž]/g, (match) => {
+        const map: Record<string, string> = { č: "c", ć: "c", ž: "z" }
+        return map[match] || match
+      })
+      .replace(/\s+/g, "-")
+      .replace(/[^\w-]+/g, "")
+
+    const contentHtml = newsForm.content
+      .split("\n\n")
+      .filter((para) => para.trim())
+      .map((para) => `<p>${para.trim()}</p>`)
+      .join("")
+
+    const newNewsItem = {
+      id: Date.now(),
+      title: newsForm.title,
+      excerpt: newsForm.excerpt,
+      contentHtml: contentHtml,
+      date: newsForm.date,
+      category: newsForm.category,
+      categoryLabel: newsCategories.find((cat) => cat.value === newsForm.category)?.label || newsForm.category,
+      image: newsForm.image,
+      slug: slug,
+      comments: newsForm.comments,
+      views: newsForm.views,
+      gallery: galleryUrls.length > 0 ? galleryUrls : undefined,
+    }
+
+    saveNewsToStorage(newNewsItem)
+    resetForms()
+    alert("Вијест успјешно додата! Преусмјеравам на страницу вијести...")
+    window.location.href = "/news"
+  }
+
+  const handleDirectAddFunFact = () => {
+    if (!funFactForm.title.trim() || !funFactForm.fact.trim()) {
+      alert("Наслов и занимљивост су обавезни!")
+      return
+    }
+
+    const categoryLabel = funFactCategories.find((c) => c.value === funFactForm.category)?.label || funFactForm.category
+
+    const factData = {
+      id: Date.now(),
+      title: funFactForm.title,
+      fact: funFactForm.fact,
+      source: funFactForm.source,
+      category: funFactForm.category,
+      categoryLabel: categoryLabel,
+      icon: funFactForm.icon,
+    }
+
+    try {
+      const stored = localStorage.getItem("customFunFacts")
+      const parsed = stored ? JSON.parse(stored) : []
+      parsed.unshift(factData)
+      localStorage.setItem("customFunFacts", JSON.stringify(parsed))
+      resetForms()
+      alert("Занимљивост је успјешно додата!")
+      window.location.href = "/zanimljivosti"
+    } catch (error) {
+      alert("Грешка при додавању занимљивости!")
+    }
   }
 
   if (!isLoggedIn) {
@@ -230,7 +299,7 @@ ${contentParagraphs || "        <p>Садржај вијести...</p>"}
         <div className="bg-white p-10 rounded-xl shadow-2xl max-w-md w-full">
           <div className="flex justify-center mb-6">
             <div className="bg-green-800 p-4 rounded-full">
-              <Lock className="w-12 h-12 text-white" /> {/* Changed FileText to Lock */}
+              <Lock className="w-12 h-12 text-white" />
             </div>
           </div>
 
@@ -288,7 +357,7 @@ ${contentParagraphs || "        <p>Садржај вијести...</p>"}
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-4xl font-bold text-green-800 mb-2">Админ Панел</h1>
-            <p className="text-gray-600">Додај нове вијести и занимљивости на website</p> {/* Updated description */}
+            <p className="text-gray-600">Додај нове вијести и занимљивости на website</p>
           </div>
           <button
             onClick={handleLogout}
@@ -328,7 +397,6 @@ ${contentParagraphs || "        <p>Садржај вијести...</p>"}
             <Lightbulb className="w-5 h-5" />
             Додај Занимљивост
           </button>
-          {/* Removed the button for adding documents */}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
@@ -410,7 +478,7 @@ ${contentParagraphs || "        <p>Садржај вијести...</p>"}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">URL слике</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">URL главне слике</label>
                   <input
                     type="text"
                     name="image"
@@ -420,6 +488,27 @@ ${contentParagraphs || "        <p>Садржај вијести...</p>"}
                     placeholder="/images/moja-slika.jpg"
                   />
                   <p className="text-xs text-gray-500 mt-1">Ставите слику у public folder и унесите путању овдје</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Галерија слика (опционално, максимално 6)
+                  </label>
+                  <textarea
+                    name="gallery"
+                    value={newsForm.gallery}
+                    onChange={handleNewsChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-800 focus:ring-1 focus:ring-green-800 resize-none"
+                    placeholder="/images/slika1.jpg, /images/slika2.jpg, /images/slika3.jpg"
+                    rows={3}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Унесите URL-ове слика раздвојене зарезима (максимално 6). Слике ће се приказати као галерија на дну
+                    чланка.
+                  </p>
+                  <p className="text-xs text-green-700 mt-1">
+                    💡 Савјет: Можете користити Google Drive линкове или слике из public/images/ фолдера
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -447,13 +536,20 @@ ${contentParagraphs || "        <p>Садржај вијести...</p>"}
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={generateNewsCode}
-                  className="w-full bg-green-800 text-white font-semibold py-3 rounded-lg hover:bg-green-900 transition-colors"
-                >
-                  Генериши код
-                </button>
+                <div className="flex gap-3">
+                  <button
+                    onClick={generateNewsCode}
+                    className="px-6 py-3 bg-green-800 text-white rounded-lg font-semibold hover:bg-green-900 transition-colors"
+                  >
+                    Генериши код
+                  </button>
+                  <button
+                    onClick={handleDirectAddNews}
+                    className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                  >
+                    Директно додај вијест
+                  </button>
+                </div>
               </form>
             ) : (
               <form className="space-y-6">
@@ -529,13 +625,20 @@ ${contentParagraphs || "        <p>Садржај вијести...</p>"}
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={generateFunFactCode}
-                  className="w-full bg-green-800 text-white font-semibold py-3 rounded-lg hover:bg-green-900 transition-colors"
-                >
-                  Генериши код
-                </button>
+                <div className="flex gap-3">
+                  <button
+                    onClick={generateFunFactCode}
+                    className="px-6 py-3 bg-green-800 text-white rounded-lg font-semibold hover:bg-green-900 transition-colors"
+                  >
+                    Генериши код
+                  </button>
+                  <button
+                    onClick={handleDirectAddFunFact}
+                    className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                  >
+                    Директно додај занимљивост
+                  </button>
+                </div>
               </form>
             )}
           </div>

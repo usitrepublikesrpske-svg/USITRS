@@ -23,28 +23,12 @@ export function Footer() {
                 { href: "/news", label: "Вијести" },
                 { href: "/zanimljivosti", label: "Занимљивости" },
                 { href: "/dokumenti", label: "Документи" },
-                {
-                  href: "https://docs.google.com/document/d/150ASJXKKf4r81o2l8Lxx9yG1_A9hV9fw/edit?usp=sharing&ouid=106695366545194392969&rtpof=true&sd=true",
-                  label: "Статут",
-                  external: true,
-                },
                 { href: "/#kontakt", label: "Контакт" },
               ].map((link) => (
                 <li key={link.href}>
-                  {link.external ? (
-                    <a
-                      href={link.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-gray-600 hover:text-emerald-700 transition-colors"
-                    >
-                      {link.label}
-                    </a>
-                  ) : (
-                    <Link href={link.href} className="text-gray-600 hover:text-emerald-700 transition-colors">
-                      {link.label}
-                    </Link>
-                  )}
+                  <Link href={link.href} className="text-gray-600 hover:text-emerald-700 transition-colors">
+                    {link.label}
+                  </Link>
                 </li>
               ))}
             </ul>

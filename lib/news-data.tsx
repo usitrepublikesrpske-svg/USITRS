@@ -1,3 +1,5 @@
+"use client"
+
 import type React from "react"
 
 export interface NewsItem {
@@ -12,11 +14,11 @@ export interface NewsItem {
   content: React.ReactNode
   comments: number
   views: number
+  gallery?: string[]
 }
 
-export const newsItems: NewsItem[] = [
-  // === DODAJ NOVE VIJESTI ISPOD OVOG KOMENTARA ===
-
+// Hardкодиране вијести
+const hardcodedNews: NewsItem[] = [
   {
     id: 1765920544806,
     title: "Савремена механизација у шумарству",
@@ -66,12 +68,46 @@ export const newsItems: NewsItem[] = [
   },
 ]
 
-// Helper funkcija za pronalažенје вijesti по slug-u
+export function saveNewsToStorage(news: any) {
+  if (typeof window === "undefined") return
+  try {
+    const existing = localStorage.getItem("customNews")
+    const parsed = existing ? JSON.parse(existing) : []
+    parsed.unshift({
+      ...news,
+      gallery: news.gallery || undefined,
+    })
+    localStorage.setItem("customNews", JSON.stringify(parsed))
+  } catch (error) {
+    console.error("Грешка при чувању вијести:", error)
+  }
+}
+
+export function getNewsFromStorage(): NewsItem[] {
+  if (typeof window === "undefined") return []
+  try {
+    const stored = localStorage.getItem("customNews")
+    if (!stored) return []
+    const parsed = JSON.parse(stored)
+    return parsed.map((item: any) => ({
+      ...item,
+      content: <div className="space-y-6" dangerouslySetInnerHTML={{ __html: item.contentHtml }} />,
+      gallery: Array.isArray(item.gallery) ? item.gallery : undefined,
+    }))
+  } catch {
+    return []
+  }
+}
+
+export const newsItems: NewsItem[] =
+  typeof window !== "undefined" ? [...getNewsFromStorage(), ...hardcodedNews] : hardcodedNews
+
+// Helper funkcija за pronалаžенје вijesti по slug-u
 export function getNewsBySlug(slug: string): NewsItem | undefined {
   return newsItems.find((item) => item.slug === slug)
 }
 
-// Helper funkcija за dobijanje najновijих вijesti
+// Helper funkcija за dobijanje najновијих вijesti
 export function getLatestNews(count = 6): NewsItem[] {
   return newsItems.slice(0, count)
 }

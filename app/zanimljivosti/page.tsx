@@ -1,10 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Trees, Leaf, Bird, Globe, FlaskConical, BookOpen, Search } from "lucide-react"
 
-const funFacts = [
+const hardcodedFacts = [
   {
     id: 1,
     title: "Најстарије дрво на свијету",
@@ -80,10 +80,25 @@ const categories = [
 ]
 
 export default function ZanimljivostiPage() {
+  const [allFacts, setAllFacts] = useState(hardcodedFacts)
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [searchQuery, setSearchQuery] = useState("")
 
-  const filteredFacts = funFacts.filter((fact) => {
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("customFunFacts")
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        const combined = [...parsed, ...hardcodedFacts]
+        const uniqueFacts = Array.from(new Map(combined.map((item) => [item.id, item])).values())
+        setAllFacts(uniqueFacts)
+      }
+    } catch (error) {
+      console.error("Грешка при учитавању занимљивости:", error)
+    }
+  }, [])
+
+  const filteredFacts = allFacts.filter((fact) => {
     const matchesCategory = selectedCategory === "all" || fact.category === selectedCategory
     const matchesSearch =
       fact.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
