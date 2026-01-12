@@ -4,62 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Trees, Leaf, Bird, Globe, FlaskConical, BookOpen, Search } from "lucide-react"
 
-const hardcodedFacts = [
-  {
-    id: 1,
-    title: "Најстарије дрво на свијету",
-    fact: "Најстарије познато дрво на свијету је бор Метузалем (Pinus longaeva) у Калифорнији, стар преко 4.850 година. Тачна локација се чува у тајности како би се дрво заштитило од вандализма.",
-    source: "National Park Service",
-    category: "drvo",
-    categoryLabel: "Дрвеће",
-    icon: "trees",
-  },
-  {
-    id: 2,
-    title: "Шуме производе кисеоник",
-    fact: 'Једно велико дрво може произвести довољно кисеоника за 4 особе дневно. Амазонска прашума производи око 20% свјетског кисеоника, због чега се назива "плућа Земље".',
-    source: "World Wildlife Fund",
-    category: "ekologija",
-    categoryLabel: "Екологија",
-    icon: "leaf",
-  },
-  {
-    id: 3,
-    title: "Дрвеће комуницира",
-    fact: 'Дрвеће комуницира међусобно преко подземне мреже гљива познате као "Wood Wide Web". Преко ове мреже дијеле храњиве твари и упозоравају сусједна стабла на нападе штеточина.',
-    source: "Nature Journal",
-    category: "nauka",
-    categoryLabel: "Наука",
-    icon: "flask",
-  },
-  {
-    id: 4,
-    title: "Шумске животиње",
-    fact: "Око 80% копненог биодиверзитета живи у шумама. Тропске прашуме, иако покривају само 6% Земљине површине, дом су више од половине свих биљних и животињских врста на планети.",
-    source: "UN Environment Programme",
-    category: "zivotinje",
-    categoryLabel: "Животиње",
-    icon: "bird",
-  },
-  {
-    id: 5,
-    title: "Историја шумарства",
-    fact: "Прва шумарска школа основана је 1811. године у Тарандту, Њемачка. Шумарство као наука развило се из потребе за одрживим коришћењем шумских ресурса током индустријске револуције.",
-    source: "FAO",
-    category: "istorija",
-    categoryLabel: "Историја",
-    icon: "book",
-  },
-  {
-    id: 6,
-    title: "Шуме и климатске промјене",
-    fact: "Шуме апсорбују око 2,6 милијарди тона угљичног диоксида годишње, што је приближно 30% људских емисија CO2. Очување шума је кључно у борби против климатских промјена.",
-    source: "IPCC",
-    category: "ekologija",
-    categoryLabel: "Екологија",
-    icon: "globe",
-  },
-]
+const hardcodedFacts = []
 
 const iconMap: Record<string, any> = {
   trees: Trees,
@@ -89,9 +34,7 @@ export default function ZanimljivostiPage() {
       const stored = localStorage.getItem("customFunFacts")
       if (stored) {
         const parsed = JSON.parse(stored)
-        const combined = [...parsed, ...hardcodedFacts]
-        const uniqueFacts = Array.from(new Map(combined.map((item) => [item.id, item])).values())
-        setAllFacts(uniqueFacts)
+        setAllFacts(parsed)
       }
     } catch (error) {
       console.error("Грешка при учитавању занимљивости:", error)
@@ -113,7 +56,7 @@ export default function ZanimljivostiPage() {
         <div className="max-w-6xl mx-auto px-6">
           <div className="flex items-center gap-2 text-sm">
             <Link href="/" className="text-gray-600 hover:text-green-700">
-              Поčetна
+              Поčетна
             </Link>
             <span className="text-gray-400">→</span>
             <span className="text-green-700 font-semibold">Занимљивости</span>
@@ -125,7 +68,7 @@ export default function ZanimljivostiPage() {
       <section className="bg-white py-12">
         <div className="max-w-6xl mx-auto px-6 text-center">
           <h1 className="text-4xl font-bold text-green-900 mb-3">Занимљивости о шумама</h1>
-          <p className="text-lg text-gray-600">Откријте фасцинантне чињенице о шумама, дрвећу и шумарству</p>
+          <p className="text-lg text-gray-600">Откријте ѕанимљиве чињенице о шумама, дрвећу и шумарству</p>
         </div>
       </section>
 
@@ -174,6 +117,16 @@ export default function ZanimljivostiPage() {
                     key={fact.id}
                     className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
                   >
+                    {/* Додана слика као thumbnail */}
+                    {fact.image && (
+                      <div className="mb-4 -mx-6 -mt-6">
+                        <img
+                          src={fact.image || "/placeholder.svg"}
+                          alt={fact.title}
+                          className="w-full h-40 object-cover rounded-t-xl"
+                        />
+                      </div>
+                    )}
                     <div className="flex items-start gap-4 mb-4">
                       <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
                         <IconComponent className="w-6 h-6 text-green-700" />

@@ -22,27 +22,7 @@ export const documents: Document[] = [
     uploadDate: "15. Децембар 2025.",
     size: "2.4 MB",
   },
-  {
-    id: 2,
-    title: "Програм рада за 2025.",
-    description: "Годишњи програм рада и активности удружења",
-    type: "pdf",
-    url: "https://drive.google.com/uc?export=download&id=YOUR_FILE_ID",
-    category: "planovi",
-    categoryLabel: "Планови",
-    uploadDate: "10. Децембар 2025.",
-    size: "1.8 MB",
-  },
-  {
-    id: 3,
-    title: "Фотографија са семинара",
-    description: "Групна фотографија учесника стручног семинара о одрживом шумарству",
-    type: "image",
-    url: "https://drive.google.com/uc?export=view&id=YOUR_FILE_ID",
-    category: "fotografije",
-    categoryLabel: "Фотографије",
-    uploadDate: "5. Децембар 2025.",
-  },
+  
 ]
 
 export const documentCategories = [
@@ -52,3 +32,17 @@ export const documentCategories = [
   { value: "fotografije", label: "Фотографије" },
   { value: "ostalo", label: "Остало" },
 ]
+
+export function getDocumentsFromStorage(): Document[] {
+  if (typeof window === "undefined") return documents
+  try {
+    const stored = localStorage.getItem("customDocuments")
+    if (stored) {
+      const customDocs = JSON.parse(stored)
+      return [...customDocs, ...documents]
+    }
+  } catch (error) {
+    console.error("Грешка при учитавању докумената:", error)
+  }
+  return documents
+}

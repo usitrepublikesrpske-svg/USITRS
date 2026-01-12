@@ -2,15 +2,12 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
-import { Copy, Newspaper, Lightbulb, LogOut, Lock } from "lucide-react"
-import { saveNewsToStorage } from "@/lib/news-data"
+import { LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { CheckCircle2 } from "lucide-react"
 
 const newsCategories = [
   { value: "edukacija", label: "Едукација" },
@@ -29,6 +26,15 @@ const funFactCategories = [
   { value: "nauka", label: "Наука" },
 ]
 
+interface FunFactForm {
+  title: string
+  fact: string
+  source: string
+  category: string
+  icon: string
+  image?: string
+}
+
 export default function AdminPage() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
     if (typeof window !== "undefined") {
@@ -39,8 +45,13 @@ export default function AdminPage() {
   const [loginForm, setLoginForm] = useState({ username: "", password: "" })
   const [loginError, setLoginError] = useState("")
 
-  const [activeTab, setActiveTab] = useState<"vijesti" | "zanimljivosti">("vijesti")
+  const [activeTab, setActiveTab] = useState<"vijesti" | "zanimljivosti" | "dokumenti">("vijesti")
   const [managementTab, setManagementTab] = useState<"add" | "manage">("add")
+
+  const [loadedNews, setLoadedNews] = useState<any[]>([])
+  const [loadedFunFacts, setLoadedFunFacts] = useState<any[]>([])
+  const [loadedDocuments, setLoadedDocuments] = useState<any[]>([])
+  const [editingId, setEditingId] = useState<string | null>(null)
 
   const [newsForm, setNewsForm] = useState({
     title: "",
@@ -55,12 +66,22 @@ export default function AdminPage() {
     author: "Редакција",
   })
 
-  const [funFactForm, setFunFactForm] = useState({
+  const [funFactForm, setFunFactForm] = useState<FunFactForm>({
     title: "",
     fact: "",
     source: "",
     category: "drvo",
-    icon: "trees",
+    icon: "leaf",
+    image: "",
+  })
+
+  const [documentForm, setDocumentForm] = useState({
+    title: "",
+    description: "",
+    type: "pdf" as "pdf" | "image",
+    url: "",
+    category: "pravilnici",
+    size: "",
   })
 
   const [savedNews, setSavedNews] = useState<any[]>([])
@@ -68,10 +89,20 @@ export default function AdminPage() {
   const [generatedCode, setGeneratedCode] = useState("")
   const [copied, setCopied] = useState(false)
 
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("customNews")
+      const savedFacts = localStorage.getItem("customFunFacts")
+      const savedDocs = localStorage.getItem("customDocuments")
+      if (saved) setLoadedNews(JSON.parse(saved))
+      if (savedFacts) setLoadedFunFacts(JSON.parse(savedFacts))
+      if (savedDocs) setLoadedDocuments(JSON.parse(savedDocs))
+    }
+  }, [])
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault()
-
-    if (loginForm.username === "predsjednik" && loginForm.password === "usit2025") {
+    if (loginForm.username === "predsjedavajuci" && loginForm.password === "usit2025") {
       setIsLoggedIn(true)
       setLoginError("")
       localStorage.setItem("adminLoggedIn", "true")
@@ -84,6 +115,67 @@ export default function AdminPage() {
     setIsLoggedIn(false)
     localStorage.removeItem("adminLoggedIn")
     setLoginForm({ username: "", password: "" })
+  }
+
+  const deleteNews = (id: string) => {
+    const updated = loadedNews.filter((item) => item.id !== id)
+    setLoadedNews(updated)
+    localStorage.setItem("customNews", JSON.stringify(updated))
+  }
+
+  const deleteFunFact = (id: string) => {
+    const updated = loadedFunFacts.filter((item) => item.id !== id)
+    setLoadedFunFacts(updated)
+    localStorage.setItem("customFunFacts", JSON.stringify(updated))
+  }
+
+  const deleteDocument = (id: string) => {
+    const updated = loadedDocuments.filter((item) => item.id !== id)
+    setLoadedDocuments(updated)
+    localStorage.setItem("customDocuments", JSON.stringify(updated))
+  }
+
+  const editNews = (item: any) => {
+    setNewsForm({
+      title: item.title || "",
+      excerpt: item.excerpt || "",
+      content: item.contentHtml?.replace(/<p>|<\/p>/g, "").replace(/<br\/>/g, "\n\n") || item.content || "",
+      date: item.date || "",
+      category: item.category || "edukacija",
+      image: item.image || "/forestry-news.jpg",
+      gallery: Array.isArray(item.gallery) ? item.gallery.join(", ") : item.gallery || "",
+      comments: item.comments || 0,
+      views: item.views || 0,
+      author: item.author || "Редакција",
+    })
+    setEditingId(item.id)
+    setManagementTab("add")
+  }
+
+  const editFunFact = (item: any) => {
+    setFunFactForm({
+      title: item.title || "",
+      fact: item.fact || "",
+      source: item.source || "",
+      category: item.category || "drvo",
+      icon: item.icon || "leaf",
+      image: item.image || "",
+    })
+    setEditingId(item.id)
+    setManagementTab("add")
+  }
+
+  const editDocument = (item: any) => {
+    setDocumentForm({
+      title: item.title || "",
+      description: item.description || "",
+      type: item.type || "pdf",
+      url: item.url || "",
+      category: item.category || "pravilnici",
+      size: item.size || "",
+    })
+    setEditingId(item.id)
+    setManagementTab("add")
   }
 
   const handleNewsChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -102,102 +194,9 @@ export default function AdminPage() {
     })
   }
 
-  const generateNewsCode = () => {
-    if (!newsForm.title.trim()) {
-      alert("Наслов је обавезан!")
-      return
-    }
-
-    if (!newsForm.excerpt.trim()) {
-      alert("Кратак опис је обавезан!")
-      return
-    }
-
-    const slug = newsForm.title
-      .toLowerCase()
-      .replace(/č/g, "c")
-      .replace(/ć/g, "c")
-      .replace(/š/g, "s")
-      .replace(/ž/g, "z")
-      .replace(/đ/g, "dj")
-      .replace(/\s+/g, "-")
-      .replace(/[^\w-]/g, "")
-      .substring(0, 50)
-
-    const categoryLabel = newsCategories.find((c) => c.value === newsForm.category)?.label || "Edukacija"
-
-    const galleryArray = newsForm.gallery
-      .split(",")
-      .map((url) => url.trim())
-      .filter((url) => url.length > 0)
-    const galleryCode = galleryArray.length > 0 ? `\n    gallery: ${JSON.stringify(galleryArray)},` : ""
-
-    const contentParagraphs = newsForm.content
-      .split("\n\n")
-      .map((para) => para.trim())
-      .filter((para) => para.length > 0)
-      .map((para) => `        <p>\n          ${para.replace(/\n/g, "\n          ")}\n        </p>`)
-      .join("\n")
-
-    const code = `{
-    id: ${Date.now()},
-    title: "${newsForm.title.replace(/"/g, '\\"')}",
-    excerpt: "${newsForm.excerpt.replace(/"/g, '\\"')}",
-    date: "${newsForm.date}",
-    category: "${newsForm.category}",
-    categoryLabel: "${categoryLabel}",
-    image: "${newsForm.image}",
-    slug: "${slug}",
-    comments: ${newsForm.comments},
-    views: ${newsForm.views},${galleryCode}
-    content: (
-      <div className="space-y-6">
-${contentParagraphs}
-      </div>
-    ),
-    author: "${newsForm.author}",
-  },`
-
-    setGeneratedCode(code)
-  }
-
-  const generateFunFactCode = () => {
-    if (!funFactForm.title.trim() || !funFactForm.fact.trim()) {
-      alert("Наслов и занимљивост су обавезни!")
-      return
-    }
-
-    const categoryLabel = funFactCategories.find((c) => c.value === funFactForm.category)?.label || funFactForm.category
-    const escapeStr = (text: string) => text.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n")
-
-    const code = `// =====================================================
-// NOVA ZANIMLJIVOST - Kopiraj CIJELI ovaj blok
-// =====================================================
-// FAJL: app/zanimljivosti/page.tsx
-// LOKACIЈA: Pronađи "const funFacts = [" и zalijepi ODMAH NAKON [
-// =====================================================
-
-  {
-    id: ${Date.now()},
-    title: "${escapeStr(funFactForm.title)}",
-    fact: "${escapeStr(funFactForm.fact)}",
-    source: "${escapeStr(funFactForm.source)}",
-    category: "${funFactForm.category}",
-    categoryLabel: "${categoryLabel}",
-    icon: "${funFactForm.icon}",
-  },
-
-// =====================================================
-// KRAJ NOVE ZANIMLJIVOSTI
-// =====================================================`
-
-    setGeneratedCode(code)
-  }
-
-  const handleCopyCode = () => {
-    navigator.clipboard.writeText(generatedCode)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+  const handleDocumentChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target
+    setDocumentForm((prev) => ({ ...prev, [name]: value }))
   }
 
   const resetForms = () => {
@@ -218,43 +217,44 @@ ${contentParagraphs}
       fact: "",
       source: "",
       category: "drvo",
-      icon: "trees",
+      icon: "leaf",
+      image: "",
     })
+    setDocumentForm({ title: "", description: "", type: "pdf", url: "", category: "pravilnici", size: "" })
     setGeneratedCode("")
     setCopied(false)
+    setEditingId(null)
   }
 
   const handleDirectAddNews = () => {
-    if (!newsForm.title || !newsForm.excerpt) {
-      alert("Молимо попуните обавезна поља (Наслов и Кратак опис)")
+    if (!newsForm.title.trim() || !newsForm.excerpt.trim() || !newsForm.content.trim()) {
+      alert("Наслов, резиме и садржај су обавезни!")
       return
     }
 
     const galleryUrls = newsForm.gallery
-      ? newsForm.gallery
-          .split(",")
-          .map((url) => url.trim())
-          .filter((url) => url.length > 0)
-          .slice(0, 6)
-      : []
+      .split(",")
+      .map((url) => url.trim())
+      .filter((url) => url.length > 0)
+      .slice(0, 6)
 
     const slug = newsForm.title
       .toLowerCase()
-      .replace(/[čćž]/g, (match) => {
-        const map: Record<string, string> = { č: "c", ć: "c", ž: "z" }
+      .replace(/[čćžšđ]/g, (match) => {
+        const map: Record<string, string> = { č: "c", ć: "c", ž: "z", š: "s", đ: "dj" }
         return map[match] || match
       })
       .replace(/\s+/g, "-")
       .replace(/[^\w-]+/g, "")
 
-    const contentHtml = newsForm.content
+    const contentHtml = (newsForm.content || "")
       .split("\n\n")
       .filter((para) => para.trim())
       .map((para) => `<p>${para.trim()}</p>`)
       .join("")
 
     const newNewsItem = {
-      id: Date.now(),
+      id: editingId || Date.now().toString(),
       title: newsForm.title,
       excerpt: newsForm.excerpt,
       contentHtml: contentHtml,
@@ -269,10 +269,17 @@ ${contentParagraphs}
       author: newsForm.author,
     }
 
-    saveNewsToStorage(newNewsItem)
+    let updatedNewsList
+    if (editingId) {
+      updatedNewsList = loadedNews.map((item) => (item.id === editingId ? newNewsItem : item))
+    } else {
+      updatedNewsList = [...loadedNews, newNewsItem]
+    }
+
+    localStorage.setItem("customNews", JSON.stringify(updatedNewsList))
+    setLoadedNews(updatedNewsList)
     resetForms()
-    alert("Вијест успјешно додата! Преусмјеравам на страницу вијести...")
-    window.location.href = "/news"
+    alert("Вијест успјешно додата/ажурирана!")
   }
 
   const handleDirectAddFunFact = () => {
@@ -284,159 +291,105 @@ ${contentParagraphs}
     const categoryLabel = funFactCategories.find((c) => c.value === funFactForm.category)?.label || funFactForm.category
 
     const factData = {
-      id: Date.now(),
+      id: editingId || Date.now().toString(),
       title: funFactForm.title,
       fact: funFactForm.fact,
       source: funFactForm.source,
       category: funFactForm.category,
       categoryLabel: categoryLabel,
       icon: funFactForm.icon,
+      image: funFactForm.image || "",
+    }
+
+    let updatedFunFacts
+    if (editingId) {
+      updatedFunFacts = loadedFunFacts.map((item) => (item.id === editingId ? factData : item))
+    } else {
+      updatedFunFacts = [...loadedFunFacts, factData]
     }
 
     try {
-      const stored = localStorage.getItem("customFunFacts")
-      const parsed = stored ? JSON.parse(stored) : []
-      parsed.unshift(factData)
-      localStorage.setItem("customFunFacts", JSON.stringify(parsed))
+      localStorage.setItem("customFunFacts", JSON.stringify(updatedFunFacts))
+      setLoadedFunFacts(updatedFunFacts)
       resetForms()
-      alert("Занимљивост је успјешно додата!")
-      window.location.href = "/zanimljivosti"
+      alert("Занимљивост је успјешно додата/ажурирана!")
     } catch (error) {
-      alert("Грешка при додавању занимљивости!")
+      alert("Грешка при додавању/ажурирању занимљивости!")
     }
   }
 
-  const handleDeleteNews = (id: number) => {
-    const updatedNews = savedNews.filter((item) => item.id !== id)
-    localStorage.setItem("newsItems", JSON.stringify(updatedNews))
-    setSavedNews(updatedNews)
-    alert("Вијест је обрисана!")
-  }
-
-  const handleDeleteFunFact = (id: number) => {
-    const updatedFacts = savedFunFacts.filter((item) => item.id !== id)
-    localStorage.setItem("funFacts", JSON.stringify(updatedFacts))
-    setSavedFunFacts(updatedFacts)
-    alert("Занимљивост је обрисана!")
-  }
-
-  const handleEditNews = (newsItem: any) => {
-    setManagementTab("add")
-    setNewsForm({
-      title: newsItem.title,
-      excerpt: newsItem.excerpt,
-      content: newsItem.content,
-      date: newsItem.date,
-      category: newsItem.category,
-      image: newsItem.image,
-      author: newsItem.author || "Редакција",
-      comments: newsItem.comments?.toString() || "0",
-      views: newsItem.views?.toString() || "0",
-      gallery: newsItem.gallery?.join(", ") || "",
-    })
-    // Брисање старе верзије
-    handleDeleteNews(newsItem.id)
-  }
-
-  const handleEditFunFact = (fact: any) => {
-    setManagementTab("add")
-    setFunFactForm({
-      title: fact.title,
-      fact: fact.fact,
-      source: fact.source,
-      category: fact.category,
-      icon: fact.icon,
-    })
-    handleDeleteFunFact(fact.id)
-  }
-
-  useEffect(() => {
-    if (isLoggedIn) {
-      const storedNews = localStorage.getItem("newsItems")
-      const storedFunFacts = localStorage.getItem("funFacts")
-
-      if (storedNews) {
-        try {
-          setSavedNews(JSON.parse(storedNews))
-        } catch (e) {
-          setSavedNews([])
-        }
-      }
-
-      if (storedFunFacts) {
-        try {
-          setSavedFunFacts(JSON.parse(storedFunFacts))
-        } catch (e) {
-          setSavedFunFacts([])
-        }
-      }
+  const handleDirectAddDocument = () => {
+    if (!documentForm.title || !documentForm.url) {
+      alert("Наслов и URL су обавезни!")
+      return
     }
-  }, [isLoggedIn, managementTab])
+
+    const documentId = editingId || Date.now().toString()
+    const newDocument = {
+      id: documentId,
+      ...documentForm,
+      uploadDate: new Date().toLocaleDateString("sr-Latn-RS", { day: "numeric", month: "long", year: "numeric" }) + ".",
+    }
+
+    let updated = loadedDocuments
+    if (editingId) {
+      updated = loadedDocuments.map((doc) => (doc.id === editingId ? newDocument : doc))
+    } else {
+      updated = [...loadedDocuments, newDocument]
+    }
+
+    setLoadedDocuments(updated)
+    localStorage.setItem("customDocuments", JSON.stringify(updated))
+
+    setDocumentForm({ title: "", description: "", type: "pdf", url: "", category: "pravilnici", size: "" })
+    setEditingId(null)
+    setManagementTab("manage")
+  }
 
   if (!isLoggedIn) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 flex items-center justify-center px-6">
-        <div className="bg-white p-10 rounded-xl shadow-2xl max-w-md w-full">
-          <div className="flex justify-center mb-6">
-            <div className="bg-green-800 p-4 rounded-full">
-              <Lock className="w-12 h-12 text-white" />
-            </div>
-          </div>
-
-          <h1 className="text-3xl font-bold text-green-800 text-center mb-2">Админ Панел</h1>
-          <p className="text-gray-600 text-center mb-8">Пријавите се за приступ</p>
-
-          <form onSubmit={handleLogin} className="space-y-6">
+      <div className="min-h-screen bg-gradient-to-br from-green-900 to-green-700 flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
+          <h1 className="text-3xl font-bold text-green-900 mb-6 text-center">Админ Панел</h1>
+          <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <Label className="block text-sm font-semibold text-gray-700 mb-2">Корисничко име</Label>
-              <Input
+              <label className="block text-sm font-medium text-gray-700 mb-1">Корисничко име</label>
+              <input
                 type="text"
                 value={loginForm.username}
                 onChange={(e) => setLoginForm({ ...loginForm, username: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-green-800 focus:ring-2 focus:ring-green-800"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 placeholder="Унесите корисничко име"
-                required
               />
             </div>
-
             <div>
-              <Label className="block text-sm font-semibold text-gray-700 mb-2">Лозинка</Label>
-              <Input
+              <label className="block text-sm font-medium text-gray-700 mb-1">Лозинка</label>
+              <input
                 type="password"
                 value={loginForm.password}
                 onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-green-800 focus:ring-2 focus:ring-green-800"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 placeholder="Унесите лозинку"
-                required
               />
             </div>
-
-            {loginError && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-                {loginError}
-              </div>
-            )}
-
-            <Button
+            {loginError && <p className="text-red-500 text-sm">{loginError}</p>}
+            <button
               type="submit"
-              className="w-full bg-green-800 text-white font-semibold py-3 rounded-lg hover:bg-green-900 transition-colors"
+              className="w-full bg-green-700 text-white py-2 rounded-lg hover:bg-green-800 font-medium"
             >
-              Пријави се
-            </Button>
+              Пријава
+            </button>
           </form>
         </div>
-      </main>
+      </div>
     )
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-6xl mx-auto px-6">
+    <div className="min-h-screen bg-gray-100 py-8 px-4">
+      <div className="max-w-6xl mx-auto">
         <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-4xl font-bold text-green-800 mb-2">Админ Панел</h1>
-            <p className="text-gray-600">Додај нове вијести и занимљивости на website</p>
-          </div>
+          <h1 className="text-4xl font-bold text-green-900">Админ Панел</h1>
           <Button
             onClick={handleLogout}
             className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
@@ -446,478 +399,566 @@ ${contentParagraphs}
           </Button>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex gap-4 mb-8">
-          <TabsList>
-            <TabsTrigger value="vijesti">
-              <Newspaper className="w-5 h-5 mr-2" />
-              Додај Вијест
-            </TabsTrigger>
-            <TabsTrigger value="zanimljivosti">
-              <Lightbulb className="w-5 h-5 mr-2" />
-              Додај Занимљивост
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="vijesti">
-            {managementTab === "add" && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Нова Вијест</CardTitle>
-                  <CardDescription>Попуните форму да бисте додали нову вијест</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div>
-                    <Label className="block text-sm font-semibold text-gray-700 mb-2">Наслов вијести *</Label>
-                    <Input
-                      type="text"
-                      name="title"
-                      value={newsForm.title}
-                      onChange={handleNewsChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-800 focus:ring-1 focus:ring-green-800"
-                      placeholder="Унесите наслов вијести"
-                    />
-                  </div>
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          <div className="flex gap-4 mb-6 border-b flex-wrap">
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setManagementTab("add")
+                setActiveTab("vijesti")
+                setEditingId(null)
+              }}
+              className={`px-6 py-3 font-medium transition-colors ${
+                managementTab === "add"
+                  ? "text-green-700 border-b-2 border-green-700"
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              Додај садржај
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setManagementTab("manage")
+                setActiveTab("vijesti")
+              }}
+              className={`px-6 py-3 font-medium transition-colors ${
+                managementTab === "manage"
+                  ? "text-green-700 border-b-2 border-green-700"
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              Управљај садржајем
+            </Button>
+          </div>
 
-                  <div>
-                    <Label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Кратак опис * (приказује се у листи вијести)
-                    </Label>
-                    <Textarea
-                      name="excerpt"
-                      value={newsForm.excerpt}
-                      onChange={handleNewsChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-800 focus:ring-1 focus:ring-green-800 resize-none"
-                      placeholder="Унесите кратак опис (2-3 реченице)"
-                      rows={3}
-                    />
-                  </div>
-
-                  <div>
-                    <Label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Комплетан текст (приказује се када се отвори вијест)
-                    </Label>
-                    <Textarea
-                      name="content"
-                      value={newsForm.content}
-                      onChange={handleNewsChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-800 focus:ring-1 focus:ring-green-800 resize-none"
-                      placeholder="Унесите комплетан текст вијести. Користите празне линије за раздвајање параграфа."
-                      rows={8}
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Савјет: Оставите празну линију између параграфа за боље форматирање
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label className="block text-sm font-semibold text-gray-700 mb-2">Датум</Label>
-                      <Input
-                        type="text"
-                        name="date"
-                        value={newsForm.date}
-                        onChange={handleNewsChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-800 focus:ring-1 focus:ring-green-800"
-                        placeholder="нпр. 15. Новембар 2025."
-                      />
-                    </div>
-                    <div>
-                      <Label className="block text-sm font-semibold text-gray-700 mb-2">Категорија</Label>
-                      <select
-                        name="category"
-                        value={newsForm.category}
-                        onChange={handleNewsChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-800 focus:ring-1 focus:ring-green-800"
-                      >
-                        {newsCategories.map((cat) => (
-                          <option key={cat.value} value={cat.value}>
-                            {cat.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label className="block text-sm font-semibold text-gray-700 mb-2">URL главне слике</Label>
-                    <Input
-                      type="text"
-                      name="image"
-                      value={newsForm.image}
-                      onChange={handleNewsChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-800 focus:ring-1 focus:ring-green-800"
-                      placeholder="/images/moja-slika.jpg"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">Ставите слику у public folder и унесите путању овдје</p>
-                  </div>
-
-                  <div>
-                    <Label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Галерија слика (опционално, максимално 6)
-                    </Label>
-                    <Textarea
-                      name="gallery"
-                      value={newsForm.gallery}
-                      onChange={handleNewsChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-800 focus:ring-1 focus:ring-green-800 resize-none"
-                      placeholder="/images/slika1.jpg, /images/slika2.jpg, /images/slika3.jpg"
-                      rows={3}
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Унесите URL-ове слика раздвојене зарезима (максимално 6). Слике ће се приказати као галерија на
-                      дну чланка.
-                    </p>
-                    <p className="text-xs text-green-700 mt-1">
-                      💡 Савјет: Можете користити Google Drive линкове или слике из public/images/ фолдера
-                    </p>
-                  </div>
-
-                  <div>
-                    <Label className="block text-sm font-semibold text-gray-700 mb-2">Автор</Label>
-                    <Input
-                      type="text"
-                      name="author"
-                      value={newsForm.author}
-                      onChange={handleNewsChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-800 focus:ring-1 focus:ring-green-800"
-                      placeholder="нпр. Редакција"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label className="block text-sm font-semibold text-gray-700 mb-2">Коментари</Label>
-                      <Input
-                        type="number"
-                        name="comments"
-                        value={newsForm.comments}
-                        onChange={handleNewsChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-800 focus:ring-1 focus:ring-green-800"
-                        min="0"
-                      />
-                    </div>
-                    <div>
-                      <Label className="block text-sm font-semibold text-gray-700 mb-2">Прегледи</Label>
-                      <Input
-                        type="number"
-                        name="views"
-                        value={newsForm.views}
-                        onChange={handleNewsChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-800 focus:ring-1 focus:ring-green-800"
-                        min="0"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex gap-3">
-                    <Button
-                      onClick={generateNewsCode}
-                      className="px-6 py-3 bg-green-800 text-white rounded-lg font-semibold hover:bg-green-900 transition-colors"
-                    >
-                      Генериши код
-                    </Button>
-                    <Button
-                      onClick={handleDirectAddNews}
-                      className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-                    >
-                      Директно додај вијест
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-            {managementTab === "manage" && (
-              <div className="space-y-6">
-                {savedNews.map((newsItem) => (
-                  <div key={newsItem.id} className="bg-white p-6 rounded-lg shadow-md">
-                    <h2 className="text-xl font-bold text-green-800 mb-4">{newsItem.title}</h2>
-                    <p className="text-gray-600 mb-4">{newsItem.excerpt}</p>
-                    <div className="flex gap-3">
-                      <Button
-                        onClick={() => handleEditNews(newsItem)}
-                        className="px-6 py-3 bg-green-800 text-white rounded-lg font-semibold hover:bg-green-900 transition-colors"
-                      >
-                        Уреди
-                      </Button>
-                      <Button
-                        onClick={() => handleDeleteNews(newsItem.id)}
-                        className="px-6 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors"
-                      >
-                        Обриши
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </TabsContent>
-          <TabsContent value="zanimljivosti">
-            {managementTab === "add" && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Нова Занимљивост</CardTitle>
-                  <CardDescription>Попуните форму да бисте додали нову занимљивост</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div>
-                    <Label className="block text-sm font-semibold text-gray-700 mb-2">Наслов *</Label>
-                    <Input
-                      type="text"
-                      name="title"
-                      value={funFactForm.title}
-                      onChange={handleFunFactChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-800 focus:ring-1 focus:ring-green-800"
-                      placeholder="нпр. Најстарије дрво на свијету"
-                    />
-                  </div>
-
-                  <div>
-                    <Label className="block text-sm font-semibold text-gray-700 mb-2">Занимљивост *</Label>
-                    <Textarea
-                      name="fact"
-                      value={funFactForm.fact}
-                      onChange={handleFunFactChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-800 focus:ring-1 focus:ring-green-800 resize-none"
-                      placeholder="Унесите занимљиву чињеницу о шумарству..."
-                      rows={4}
-                    />
-                  </div>
-
-                  <div>
-                    <Label className="block text-sm font-semibold text-gray-700 mb-2">Извор (опционо)</Label>
-                    <Input
-                      type="text"
-                      name="source"
-                      value={funFactForm.source}
-                      onChange={handleFunFactChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-800 focus:ring-1 focus:ring-green-800"
-                      placeholder="нпр. National Geographic"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label className="block text-sm font-semibold text-gray-700 mb-2">Категорија</Label>
-                      <select
-                        name="category"
-                        value={funFactForm.category}
-                        onChange={handleFunFactChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-800 focus:ring-1 focus:ring-green-800"
-                      >
-                        {funFactCategories.map((cat) => (
-                          <option key={cat.value} value={cat.value}>
-                            {cat.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <Label className="block text-sm font-semibold text-gray-700 mb-2">Иконица</Label>
-                      <select
-                        name="icon"
-                        value={funFactForm.icon}
-                        onChange={handleFunFactChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-800 focus:ring-1 focus:ring-green-800"
-                      >
-                        <option value="trees">Дрвеће</option>
-                        <option value="leaf">Лист</option>
-                        <option value="bird">Птица</option>
-                        <option value="globe">Глобус</option>
-                        <option value="flask">Наука</option>
-                        <option value="book">Књига</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-3">
-                    <Button
-                      onClick={generateFunFactCode}
-                      className="px-6 py-3 bg-green-800 text-white rounded-lg font-semibold hover:bg-green-900 transition-colors"
-                    >
-                      Генериши код
-                    </Button>
-                    <Button
-                      onClick={handleDirectAddFunFact}
-                      className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-                    >
-                      Директно додај занимљивост
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-            {managementTab === "manage" && (
-              <div className="space-y-8">
-                <div className="bg-gray-800 rounded-lg p-6">
-                  <h3 className="text-2xl font-bold text-emerald-400 mb-6">Управљање вијестима</h3>
-                  {savedNews.length === 0 ? (
-                    <p className="text-gray-400">Нема сачуваних вијести.</p>
-                  ) : (
-                    <div className="space-y-4">
-                      {savedNews.map((newsItem) => (
-                        <div key={newsItem.id} className="bg-gray-700 rounded-lg p-4 flex justify-between items-start">
-                          <div className="flex-1">
-                            <h4 className="text-lg font-semibold text-white mb-2">{newsItem.title}</h4>
-                            <p className="text-sm text-gray-400 mb-2">{newsItem.excerpt}</p>
-                            <div className="flex gap-4 text-xs text-gray-500">
-                              <span>{newsItem.date}</span>
-                              <span>{newsItem.category}</span>
-                            </div>
-                          </div>
-                          <div className="flex gap-2 ml-4">
-                            <button
-                              onClick={() => handleEditNews(newsItem)}
-                              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors"
-                            >
-                              Измијени
-                            </button>
-                            <button
-                              onClick={() => {
-                                if (confirm("Да ли сте сигурни да желите обрисати ову вијест?")) {
-                                  handleDeleteNews(newsItem.id)
-                                }
-                              }}
-                              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors"
-                            >
-                              Обриши
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className="bg-gray-800 rounded-lg p-6">
-                  <h3 className="text-2xl font-bold text-emerald-400 mb-6">Управљање занимљивостима</h3>
-                  {savedFunFacts.length === 0 ? (
-                    <p className="text-gray-400">Нема сачуваних занимљивости.</p>
-                  ) : (
-                    <div className="space-y-4">
-                      {savedFunFacts.map((fact) => (
-                        <div key={fact.id} className="bg-gray-700 rounded-lg p-4 flex justify-between items-start">
-                          <div className="flex-1">
-                            <h4 className="text-lg font-semibold text-white mb-2">{fact.title}</h4>
-                            <p className="text-sm text-gray-400 mb-2">{fact.fact}</p>
-                            <div className="flex gap-4 text-xs text-gray-500">
-                              <span>{fact.date}</span>
-                              <span>{fact.category}</span>
-                            </div>
-                          </div>
-                          <div className="flex gap-2 ml-4">
-                            <button
-                              onClick={() => handleEditFunFact(fact)}
-                              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors"
-                            >
-                              Измијени
-                            </button>
-                            <button
-                              onClick={() => {
-                                if (confirm("Да ли сте сигурни да желите обрисати ову занимљивост?")) {
-                                  handleDeleteFunFact(fact.id)
-                                }
-                              }}
-                              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors"
-                            >
-                              Обриши
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
-
-        <div className="bg-white p-8 rounded-lg shadow-md">
-          <h2 className="text-xl font-bold text-green-800 mb-4">Генерисани код</h2>
-
-          {generatedCode ? (
+          {managementTab === "add" ? (
             <>
-              <div className="relative">
-                <pre className="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto text-sm max-h-96 overflow-y-auto font-mono whitespace-pre-wrap">
-                  {generatedCode}
-                </pre>
-
+              <div className="flex gap-4 mb-6 border-b">
                 <Button
-                  onClick={handleCopyCode}
-                  className="absolute top-2 right-2 flex items-center gap-2 bg-green-700 hover:bg-green-800 text-white px-3 py-1 rounded transition-colors text-sm"
+                  variant="ghost"
+                  onClick={() => setActiveTab("vijesti")}
+                  className={`px-6 py-3 font-medium transition-colors ${
+                    activeTab === "vijesti"
+                      ? "text-green-700 border-b-2 border-green-700"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
                 >
-                  {copied ? (
-                    <>
-                      <CheckCircle2 className="w-4 h-4" />
-                      Копирано!
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-4 h-4" />
-                      Копирај
-                    </>
-                  )}
+                  Додај вијест
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => setActiveTab("zanimljivosti")}
+                  className={`px-6 py-3 font-medium transition-colors ${
+                    activeTab === "zanimljivosti"
+                      ? "text-green-700 border-b-2 border-green-700"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
+                >
+                  Додај занимљивост
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => setActiveTab("dokumenti")}
+                  className={`px-6 py-3 font-medium transition-colors ${
+                    activeTab === "dokumenti"
+                      ? "text-green-700 border-b-2 border-green-700"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
+                >
+                  Додај документ
                 </Button>
               </div>
 
-              <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg text-sm">
-                <h3 className="font-semibold text-green-800 mb-2">Упутство за копирање:</h3>
-                <ol className="text-green-700 space-y-2 list-decimal list-inside">
-                  <li>
-                    Кликни <strong>"Копирај"</strong> дугме горе
-                  </li>
-                  <li>
-                    Отвори фајл{" "}
-                    <code className="bg-white px-1 rounded font-bold">
-                      {activeTab === "vijesti" ? "lib/news-data.tsx" : "app/zanimljivosti/page.tsx"}
-                    </code>{" "}
-                    у VS Code
-                  </li>
-                  <li>
-                    Пронађи коментар{" "}
-                    <code className="bg-white px-1 rounded">
-                      {activeTab === "vijesti"
-                        ? "// === DODAJ NOVE VIJESTI ISPOD OVOG KOMENTARA ==="
-                        : "const funFacts = ["}
-                    </code>
-                  </li>
-                  <li>
-                    Залијепи код <strong>ИСПОД</strong> тог коментара
-                  </li>
-                  <li>
-                    Сачувај фајл (<strong>Ctrl+S</strong>)
-                  </li>
-                </ol>
-              </div>
+              {activeTab === "vijesti" ? (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{editingId ? "Уреди Вијест" : "Нова Вијест"}</CardTitle>
+                    <CardDescription>Попуните форму да бисте додали/ажурирали вијест</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div>
+                      <Label className="block text-sm font-semibold text-gray-700 mb-2">Наслов вијести *</Label>
+                      <Input
+                        type="text"
+                        name="title"
+                        value={newsForm.title}
+                        onChange={handleNewsChange}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-800 focus:ring-1 focus:ring-green-800"
+                        placeholder="Унесите наслов вијести"
+                      />
+                    </div>
+
+                    <div>
+                      <Label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Кратак опис * (приказује се у листи вијести)
+                      </Label>
+                      <Textarea
+                        name="excerpt"
+                        value={newsForm.excerpt}
+                        onChange={handleNewsChange}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-800 focus:ring-1 focus:ring-green-800 resize-none"
+                        placeholder="Унесите кратак опис (2-3 реченице)"
+                        rows={3}
+                      />
+                    </div>
+
+                    <div>
+                      <Label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Комплетан текст (приказује се када се отвори вијест)
+                      </Label>
+                      <Textarea
+                        name="content"
+                        value={newsForm.content}
+                        onChange={handleNewsChange}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-800 focus:ring-1 focus:ring-green-800 resize-none"
+                        placeholder="Унесите комплетан текст вијести. Користите празне линије за раздвајање параграфа."
+                        rows={8}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label className="block text-sm font-semibold text-gray-700 mb-2">Датум</Label>
+                        <Input
+                          type="text"
+                          name="date"
+                          value={newsForm.date}
+                          onChange={handleNewsChange}
+                          placeholder="нпр. 15. Новембар 2025."
+                        />
+                      </div>
+                      <div>
+                        <Label className="block text-sm font-semibold text-gray-700 mb-2">Категорија</Label>
+                        <select
+                          name="category"
+                          value={newsForm.category}
+                          onChange={handleNewsChange}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-800 focus:ring-1 focus:ring-green-800"
+                        >
+                          {newsCategories.map((cat) => (
+                            <option key={cat.value} value={cat.value}>
+                              {cat.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label className="block text-sm font-semibold text-gray-700 mb-2">URL главне слике</Label>
+                      <Input
+                        type="text"
+                        name="image"
+                        value={newsForm.image}
+                        onChange={handleNewsChange}
+                        placeholder="/images/moja-slika.jpg"
+                      />
+                    </div>
+
+                    <div>
+                      <Label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Галерија слика (опционално, максимално 6)
+                      </Label>
+                      <Textarea
+                        name="gallery"
+                        value={newsForm.gallery}
+                        onChange={handleNewsChange}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-800 focus:ring-1 focus:ring-green-800 resize-none"
+                        placeholder="/images/slika1.jpg, /images/slika2.jpg"
+                        rows={3}
+                      />
+                    </div>
+
+                    <div>
+                      <Label className="block text-sm font-semibold text-gray-700 mb-2">Автор</Label>
+                      <Input
+                        type="text"
+                        name="author"
+                        value={newsForm.author}
+                        onChange={handleNewsChange}
+                        placeholder="нпр. Редакција"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label className="block text-sm font-semibold text-gray-700 mb-2">Коментари</Label>
+                        <Input
+                          type="number"
+                          name="comments"
+                          value={newsForm.comments}
+                          onChange={handleNewsChange}
+                          min="0"
+                        />
+                      </div>
+                      <div>
+                        <Label className="block text-sm font-semibold text-gray-700 mb-2">Прегледи</Label>
+                        <Input type="number" name="views" value={newsForm.views} onChange={handleNewsChange} min="0" />
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3">
+                      <Button
+                        onClick={handleDirectAddNews}
+                        className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                      >
+                        {editingId ? "Ажурирај вијест" : "Додај вијест"}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : activeTab === "zanimljivosti" ? (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{editingId ? "Уреди Занимљивост" : "Нова Занимљивост"}</CardTitle>
+                    <CardDescription>Попуните форму да бисте додали/ажурирали занимљивост</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div>
+                      <Label className="block text-sm font-semibold text-gray-700 mb-2">Наслов *</Label>
+                      <Input
+                        type="text"
+                        name="title"
+                        value={funFactForm.title}
+                        onChange={handleFunFactChange}
+                        placeholder="нпр. Најстарије дрво на свијету"
+                      />
+                    </div>
+
+                    <div>
+                      <Label className="block text-sm font-semibold text-gray-700 mb-2">Занимљивост *</Label>
+                      <Textarea
+                        name="fact"
+                        value={funFactForm.fact}
+                        onChange={handleFunFactChange}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-800 focus:ring-1 focus:ring-green-800 resize-none"
+                        placeholder="Унесите занимљиву чињеницу о шумарству..."
+                        rows={4}
+                      />
+                    </div>
+
+                    <div>
+                      <Label className="block text-sm font-semibold text-gray-700 mb-2">Извор (опционо)</Label>
+                      <Input
+                        type="text"
+                        name="source"
+                        value={funFactForm.source}
+                        onChange={handleFunFactChange}
+                        placeholder="нпр. National Geographic"
+                      />
+                    </div>
+
+                    <div>
+                      <Label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Слика - Thumbnail (опционо)
+                      </Label>
+                      <Input
+                        type="text"
+                        name="image"
+                        value={funFactForm.image || ""}
+                        onChange={handleFunFactChange}
+                        placeholder="/images/slika.jpg или Google Drive URL"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label className="block text-sm font-semibold text-gray-700 mb-2">Категорија</Label>
+                        <select
+                          name="category"
+                          value={funFactForm.category}
+                          onChange={handleFunFactChange}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-800 focus:ring-1 focus:ring-green-800"
+                        >
+                          {funFactCategories.map((cat) => (
+                            <option key={cat.value} value={cat.value}>
+                              {cat.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <Label className="block text-sm font-semibold text-gray-700 mb-2">Иконица</Label>
+                        <select
+                          name="icon"
+                          value={funFactForm.icon}
+                          onChange={handleFunFactChange}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-800 focus:ring-1 focus:ring-green-800"
+                        >
+                          <option value="trees">Дрвеће</option>
+                          <option value="leaf">Лист</option>
+                          <option value="bird">Птица</option>
+                          <option value="globe">Глобус</option>
+                          <option value="flask">Наука</option>
+                          <option value="book">Књига</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3">
+                      <Button
+                        onClick={handleDirectAddFunFact}
+                        className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                      >
+                        {editingId ? "Ажурирај занимљивост" : "Додај занимљивост"}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{editingId ? "Уреди Документ" : "Нови Документ"}</CardTitle>
+                    <CardDescription>Попуните форму да бисте додали/ажурирали документ</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div>
+                      <Label className="block text-sm font-semibold text-gray-700 mb-2">Наслов *</Label>
+                      <Input
+                        type="text"
+                        name="title"
+                        value={documentForm.title}
+                        onChange={handleDocumentChange}
+                        placeholder="нпр. Статут Удружења"
+                      />
+                    </div>
+
+                    <div>
+                      <Label className="block text-sm font-semibold text-gray-700 mb-2">Опис</Label>
+                      <Textarea
+                        name="description"
+                        value={documentForm.description}
+                        onChange={handleDocumentChange}
+                        placeholder="Опис документа..."
+                        rows={3}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label className="block text-sm font-semibold text-gray-700 mb-2">Тип</Label>
+                        <select
+                          name="type"
+                          value={documentForm.type}
+                          onChange={handleDocumentChange}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-800 focus:ring-1 focus:ring-green-800"
+                        >
+                          <option value="pdf">PDF</option>
+                          <option value="image">Слика</option>
+                        </select>
+                      </div>
+                      <div>
+                        <Label className="block text-sm font-semibold text-gray-700 mb-2">Категорија</Label>
+                        <select
+                          name="category"
+                          value={documentForm.category}
+                          onChange={handleDocumentChange}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-800 focus:ring-1 focus:ring-green-800"
+                        >
+                          <option value="pravilnici">Правилници</option>
+                          <option value="planovi">Планови</option>
+                          <option value="izvjestaji">Извјештаји</option>
+                          <option value="fotografije">Фотографије</option>
+                          <option value="ostalo">Остало</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label className="block text-sm font-semibold text-gray-700 mb-2">Google Drive URL *</Label>
+                      <Input
+                        type="text"
+                        name="url"
+                        value={documentForm.url}
+                        onChange={handleDocumentChange}
+                        placeholder="https://drive.google.com/uc?export=download&id=YOUR_FILE_ID"
+                      />
+                    </div>
+
+                    <div>
+                      <Label className="block text-sm font-semibold text-gray-700 mb-2">Величина (опционо)</Label>
+                      <Input
+                        type="text"
+                        name="size"
+                        value={documentForm.size}
+                        onChange={handleDocumentChange}
+                        placeholder="нпр. 2.4 MB"
+                      />
+                    </div>
+
+                    <div className="flex gap-3">
+                      <Button
+                        onClick={handleDirectAddDocument}
+                        className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                      >
+                        {editingId ? "Ажурирај документ" : "Додај документ"}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </>
           ) : (
-            <div className="flex items-center justify-center h-64 text-gray-400">
-              <p>Попуни форму и генериши код...</p>
+            <div className="space-y-4">
+              <div className="flex gap-4 mb-6 border-b">
+                <Button
+                  variant="ghost"
+                  onClick={() => setActiveTab("vijesti")}
+                  className={`px-6 py-3 font-medium transition-colors ${
+                    activeTab === "vijesti"
+                      ? "text-green-700 border-b-2 border-green-700"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
+                >
+                  Вијести
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => setActiveTab("zanimljivosti")}
+                  className={`px-6 py-3 font-medium transition-colors ${
+                    activeTab === "zanimljivosti"
+                      ? "text-green-700 border-b-2 border-green-700"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
+                >
+                  Занимљивости
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => setActiveTab("dokumenti")}
+                  className={`px-6 py-3 font-medium transition-colors ${
+                    activeTab === "dokumenti"
+                      ? "text-green-700 border-b-2 border-green-700"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
+                >
+                  Документи
+                </Button>
+              </div>
+
+              {activeTab === "vijesti" && (
+                <div className="space-y-4">
+                  <h3 className="text-xl font-bold text-gray-800">Сачуване вијести</h3>
+                  {loadedNews.length === 0 ? (
+                    <p className="text-gray-500">Нема сачуваних вијести</p>
+                  ) : (
+                    loadedNews.map((news) => (
+                      <div key={news.id} className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        <div className="flex justify-between items-start gap-4">
+                          <div className="flex-1">
+                            <h4 className="font-bold text-gray-800">{news.title}</h4>
+                            <p className="text-sm text-gray-600 mt-1">{news.excerpt}</p>
+                            <p className="text-xs text-gray-500 mt-2">Датум: {news.date}</p>
+                          </div>
+                          <div className="flex gap-2 flex-shrink-0">
+                            <Button
+                              onClick={() => editNews(news)}
+                              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 text-sm"
+                            >
+                              Измијени
+                            </Button>
+                            <Button
+                              onClick={() => {
+                                if (window.confirm("Да ли сте сигурни?")) {
+                                  deleteNews(news.id)
+                                }
+                              }}
+                              className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 text-sm"
+                            >
+                              Обриши
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+
+              {activeTab === "zanimljivosti" && (
+                <div className="space-y-4">
+                  <h3 className="text-xl font-bold text-gray-800">Сачуване занимљивости</h3>
+                  {loadedFunFacts.length === 0 ? (
+                    <p className="text-gray-500">Нема сачуваних занимљивости</p>
+                  ) : (
+                    loadedFunFacts.map((fact) => (
+                      <div key={fact.id} className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        <div className="flex justify-between items-start gap-4">
+                          <div className="flex-1">
+                            <h4 className="font-bold text-gray-800">{fact.title}</h4>
+                            <p className="text-sm text-gray-600 mt-1">{fact.fact}</p>
+                            <p className="text-xs text-gray-500 mt-2">Категорија: {fact.categoryLabel}</p>
+                          </div>
+                          <div className="flex gap-2 flex-shrink-0">
+                            <Button
+                              onClick={() => editFunFact(fact)}
+                              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 text-sm"
+                            >
+                              Измијени
+                            </Button>
+                            <Button
+                              onClick={() => {
+                                if (window.confirm("Да ли сте сигурни?")) {
+                                  deleteFunFact(fact.id)
+                                }
+                              }}
+                              className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 text-sm"
+                            >
+                              Обриши
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+
+              {activeTab === "dokumenti" && (
+                <div className="space-y-4">
+                  <h3 className="text-xl font-bold text-gray-800">Сачувани документи</h3>
+                  {loadedDocuments.length === 0 ? (
+                    <p className="text-gray-500">Нема сачуваних докумената</p>
+                  ) : (
+                    loadedDocuments.map((doc) => (
+                      <div key={doc.id} className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        <div className="flex justify-between items-start gap-4">
+                          <div className="flex-1">
+                            <h4 className="font-bold text-gray-800">{doc.title}</h4>
+                            <p className="text-sm text-gray-600 mt-1">{doc.description}</p>
+                            <p className="text-xs text-gray-500 mt-2">
+                              Тип: {doc.type === "pdf" ? "PDF" : "Слика"} | Датум: {doc.uploadDate}
+                            </p>
+                          </div>
+                          <div className="flex gap-2 flex-shrink-0">
+                            <Button
+                              onClick={() => editDocument(doc)}
+                              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 text-sm"
+                            >
+                              Измијени
+                            </Button>
+                            <Button
+                              onClick={() => {
+                                if (window.confirm("Да ли сте сигурни?")) {
+                                  deleteDocument(doc.id)
+                                }
+                              }}
+                              className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 text-sm"
+                            >
+                              Обриши
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
-
-        <div className="mt-12 bg-blue-50 border border-blue-200 rounded-lg p-6">
-          <h3 className="font-bold text-blue-900 mb-3 text-lg">📖 Како покренути сајт offline (локално):</h3>
-          <ol className="text-blue-800 space-y-2 list-decimal list-inside">
-            <li>
-              Преузми пројекат са v0 - кликни три тачке у горњем десном углу и одабери <strong>"Download ZIP"</strong>
-            </li>
-            <li>Распакуј ZIP фајл у фолдер по избору</li>
-            <li>
-              Отвори терминал у том фолдеру (у VS Code: <strong>Ctrl + `</strong>)
-            </li>
-            <li>
-              Инсталирај зависности: <code className="bg-white px-2 py-1 rounded">npm install</code>
-            </li>
-            <li>
-              Покрени dev server: <code className="bg-white px-2 py-1 rounded">npm run dev</code>
-            </li>
-            <li>
-              Отвори browser на: <code className="bg-white px-2 py-1 rounded">http://localhost:3000</code>
-            </li>
-          </ol>
-        </div>
       </div>
-    </main>
+    </div>
   )
 }

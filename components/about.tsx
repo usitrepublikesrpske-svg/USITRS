@@ -9,7 +9,7 @@ export function About() {
         <div className="max-w-3xl mx-auto px-6 text-center">
           <h2 className="text-4xl font-bold text-emerald-700 mb-8">О удружењу</h2>
           <p className="text-lg text-gray-600 leading-relaxed mb-12">
-            Удружење шумарске струке је професионална организација која окупља стручњаке из области шумарства, заштите
+            Удружење шумарске струке је удружење која окупља стручњаке из области шумарства, заштите
             природе и одрживог развоја. Наша мисија је промовисање савремених пракси у шумарству, професионални развој
             чланова и допринос очувању шумских екосистема.
           </p>
@@ -18,7 +18,7 @@ export function About() {
             {[
               { number: "500+", label: "Чланова" },
               { number: "25+", label: "Година рада" },
-              { number: "100+", label: "Пројеката" },
+              { number: "50+", label: "Пројеката" },
             ].map((stat, idx) => (
               <div key={idx} className="p-6 bg-emerald-50 rounded-lg">
                 <div className="text-4xl md:text-5xl font-bold text-emerald-700 mb-2">{stat.number}</div>
@@ -43,15 +43,15 @@ export function About() {
               <ul className="space-y-3 text-gray-600 mb-6">
                 <li className="flex items-start gap-3">
                   <span className="text-emerald-700 font-bold">•</span>
-                  <span>Приступ стручњаским саветницама и семинарима</span>
+                  <span>Приступ стручним савјетима и семинарима</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="text-emerald-700 font-bold">•</span>
-                  <span>Учешће у пољским огледима и конференцијама</span>
+                  <span>Учешће у теренским огледима и конференцијама</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="text-emerald-700 font-bold">•</span>
-                  <span>Публиковање радова у стручним гласилима</span>
+                  <span>Публиковање радова у стручним часописима</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="text-emerald-700 font-bold">•</span>
@@ -72,7 +72,7 @@ export function About() {
               <ul className="space-y-3 text-gray-600 mb-6">
                 <li className="flex items-start gap-3">
                   <span className="text-emerald-700 font-bold">•</span>
-                  <span>Погодности у ценама за све манифестације</span>
+                  <span>Погодности у цијенама за све манифестације</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="text-emerald-700 font-bold">•</span>

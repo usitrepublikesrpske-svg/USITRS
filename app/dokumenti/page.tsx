@@ -98,8 +98,16 @@ export default function DokumentiPage() {
 
                 <a
                   href={doc.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  download={doc.title}
+                  onClick={(e) => {
+                    if (doc.type === "pdf") {
+                      e.preventDefault()
+                      window.open(doc.url, "_blank")
+                      setTimeout(() => {
+                        window.location.href = "/dokumenti"
+                      }, 100)
+                    }
+                  }}
                   className="flex items-center justify-center gap-2 w-full bg-green-800 text-white font-semibold py-2 rounded-lg hover:bg-green-900 transition-colors"
                 >
                   <Download className="w-4 h-4" />

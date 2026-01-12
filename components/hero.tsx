@@ -2,8 +2,15 @@ import Link from "next/link"
 
 export function Hero() {
   return (
-    <section className="bg-gradient-to-r from-emerald-700 to-emerald-600 text-white py-24 md:py-32 text-center">
-      <div className="max-w-3xl mx-auto px-6">
+    <section
+      className="bg-cover bg-center text-white py-24 md:py-32 text-center relative"
+      style={{
+        backgroundImage: 'url("/forest-background.jpg")',
+      }}
+    >
+      <div className="absolute inset-0 bg-black/40"></div>
+
+      <div className="max-w-3xl mx-auto px-6 relative z-10">
         <h1 className="text-4xl md:text-5xl font-bold leading-tight mb-6">Заједно за одрживо шумарство</h1>
         <p className="text-lg md:text-xl mb-10 opacity-95 leading-relaxed">
           Удружење посвећено развоју шумарства и заштити шумских ресурса
