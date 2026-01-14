@@ -3,8 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Trees, Leaf, Bird, Globe, FlaskConical, BookOpen, Search } from "lucide-react"
-
-const hardcodedFacts = []
+import { getAllFunFacts, type FunFact } from "@/lib/fun-facts-data"
 
 const iconMap: Record<string, any> = {
   trees: Trees,
@@ -25,20 +24,15 @@ const categories = [
 ]
 
 export default function ZanimljivostiPage() {
-  const [allFacts, setAllFacts] = useState(hardcodedFacts)
+  const [allFacts, setAllFacts] = useState<FunFact[]>([])
+
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [searchQuery, setSearchQuery] = useState("")
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem("customFunFacts")
-      if (stored) {
-        const parsed = JSON.parse(stored)
-        setAllFacts(parsed)
-      }
-    } catch (error) {
-      console.error("Грешка при учитавању занимљивости:", error)
-    }
+    // Учитавање занимљивости од хардкодираних и localStorage
+    const facts = getAllFunFacts()
+    setAllFacts(facts)
   }, [])
 
   const filteredFacts = allFacts.filter((fact) => {
@@ -111,13 +105,13 @@ export default function ZanimljivostiPage() {
           {filteredFacts.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredFacts.map((fact) => {
-                const IconComponent = iconMap[fact.icon] || Trees
+                const IconComponent = iconMap[fact.icon || "trees"] || Trees
                 return (
                   <article
                     key={fact.id}
                     className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
                   >
-                    {/* Додана слика као thumbnail */}
+                    {/* Слика као thumbnail */}
                     {fact.image && (
                       <div className="mb-4 -mx-6 -mt-6">
                         <img
@@ -141,7 +135,13 @@ export default function ZanimljivostiPage() {
 
                     <p className="text-gray-600 text-sm leading-relaxed mb-4">{fact.fact}</p>
 
-                    {fact.source && <p className="text-xs text-gray-400">Извор: {fact.source}</p>}
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-gray-400">{fact.date}</span>
+                      {/* Замена "Опширније" линка са линком на Lana Lana вијести умјесто детаљне странице занимљивости */}
+                      <Link href="/news" className="text-green-700 hover:text-green-800 font-semibold text-sm">
+                        Вижу вијести →
+                      </Link>
+                    </div>
                   </article>
                 )
               })}

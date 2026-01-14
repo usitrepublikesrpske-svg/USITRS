@@ -1,12 +1,22 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { FileText, ImageIcon, Download, Search, Filter } from "lucide-react"
-import { documents, documentCategories } from "@/lib/documents-data"
+import { documentCategories, getDocumentsFromStorage } from "@/lib/documents-data"
 
 export default function DokumentiPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("sve")
+  const [documents, setDocuments] = useState([])
+
+  useEffect(() => {
+    const sorted = [...getDocumentsFromStorage()].sort((a: any, b: any) => {
+      const dateA = new Date(a.uploadDate || 0).getTime()
+      const dateB = new Date(b.uploadDate || 0).getTime()
+      return dateB - dateA // Најновије прво
+    })
+    setDocuments(sorted)
+  }, [])
 
   const filteredDocuments = documents.filter((doc) => {
     const matchesSearch =

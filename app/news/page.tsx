@@ -4,25 +4,22 @@ import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { ChevronLeft, ChevronRight, MessageCircle, Eye } from "lucide-react"
-import { newsItems, getNewsFromStorage } from "@/lib/news-data"
+import { getNewsFromStorageWithHardcoded } from "@/lib/news-data"
 import type { NewsItem } from "@/lib/news-data"
 
 const ITEMS_PER_PAGE = 3
 
 export default function NewsPage() {
-  const [allNews, setAllNews] = useState<NewsItem[]>(newsItems)
-  const [filtered, setFiltered] = useState<NewsItem[]>(newsItems)
+  const [allNews, setAllNews] = useState<NewsItem[]>([])
+  const [filtered, setFiltered] = useState<NewsItem[]>([])
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [sortBy, setSortBy] = useState("newest")
   const [currentPage, setCurrentPage] = useState(1)
 
   useEffect(() => {
-    const hardcodedNews = newsItems
-    const storedNews = getNewsFromStorage()
-    const combined = [...storedNews, ...hardcodedNews]
-    const uniqueNews = Array.from(new Map(combined.map((item) => [item.id, item])).values())
-    setAllNews(uniqueNews)
-    setFiltered(uniqueNews)
+    const combined = getNewsFromStorageWithHardcoded()
+    setAllNews(combined)
+    setFiltered(combined)
   }, [])
 
   const handleCategoryFilter = (category: string) => {
@@ -43,6 +40,14 @@ export default function NewsPage() {
       result.reverse()
     } else if (sort === "category") {
       result.sort((a, b) => a.category.localeCompare(b.category))
+    } else {
+      const sorted = result.sort((a, b) => {
+        const dateA = new Date(a.date).getTime()
+        const dateB = new Date(b.date).getTime()
+        return dateB - dateA // Новије прво
+      })
+      setFiltered(sorted)
+      return
     }
     setFiltered(result)
   }

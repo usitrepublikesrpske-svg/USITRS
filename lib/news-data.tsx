@@ -7,6 +7,7 @@ export interface NewsItem {
   title: string
   excerpt: string
   date: string
+  dateSort: number // Додавање поља за сортирање датума
   category: string
   categoryLabel: string
   image: string
@@ -17,7 +18,7 @@ export interface NewsItem {
   gallery?: string[]
 }
 
-// Hardкодиране вијести
+// Hardкодиране вијести - ПРАЗНА јер корисник жели управљање кроз админ панел
 const hardcodedNews: NewsItem[] = []
 
 export function saveNewsToStorage(news: any) {
@@ -39,28 +40,37 @@ export function getNewsFromStorage(): NewsItem[] {
   if (typeof window === "undefined") return []
   try {
     const stored = localStorage.getItem("customNews")
-    if (!stored) return []
+    if (!stored) return hardcodedNews
     const parsed = JSON.parse(stored)
-    return parsed.map((item: any, index: number) => ({
+    const sorted = parsed.sort((a: any, b: any) => {
+      return (b.dateSort || 0) - (a.dateSort || 0)
+    })
+    return sorted.map((item: any, index: number) => ({
       ...item,
       slug: item.slug || `news-custom-${item.id || index}`,
       content: <div className="space-y-6" dangerouslySetInnerHTML={{ __html: item.contentHtml }} />,
       gallery: Array.isArray(item.gallery) ? item.gallery : undefined,
     }))
   } catch {
-    return []
+    return hardcodedNews
   }
 }
 
-// Исправка редосљеда - нове вијести прво, затим hard-coded
-export const newsItems: NewsItem[] = typeof window !== "undefined" ? getNewsFromStorage() : []
+export const newsItems: NewsItem[] = hardcodedNews
 
-// Helper funkcija за pronалаžенје вijesti по slug-u
-export function getNewsBySlug(slug: string): NewsItem | undefined {
-  return newsItems.find((item) => item.slug === slug)
+export function getNewsFromStorageWithHardcoded(): NewsItem[] {
+  const stored = getNewsFromStorage()
+  const combined = [...stored, ...hardcodedNews]
+  const unique = Array.from(new Map(combined.map((item) => [item.id, item])).values())
+  return unique.sort((a, b) => (b.dateSort || 0) - (a.dateSort || 0))
 }
 
-// Helper funkcija за dobijanje najновијих вijesti
+export function getNewsBySlug(slug: string): NewsItem | undefined {
+  const all = getNewsFromStorageWithHardcoded()
+  return all.find((item) => item.slug === slug)
+}
+
 export function getLatestNews(count = 6): NewsItem[] {
-  return newsItems.slice(0, count)
+  const all = getNewsFromStorageWithHardcoded()
+  return all.slice(0, count)
 }

@@ -57,7 +57,7 @@ export default function AdminPage() {
     title: "",
     excerpt: "",
     content: "",
-    date: new Date().toLocaleDateString("sr-Latn-RS", { day: "numeric", month: "long", year: "numeric" }) + ".",
+    date: new Date().toLocaleDateString("sr-Latn-RS", { day: "numeric", month: "long", year: "numeric" }),
     category: "edukacija",
     image: "/forestry-news.jpg",
     gallery: "",
@@ -102,7 +102,7 @@ export default function AdminPage() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault()
-    if (loginForm.username === "predsjedavajuci" && loginForm.password === "usit2025") {
+    if (loginForm.username === "predsjednik" && loginForm.password === "usit2025") {
       setIsLoggedIn(true)
       setLoginError("")
       localStorage.setItem("adminLoggedIn", "true")
@@ -204,7 +204,7 @@ export default function AdminPage() {
       title: "",
       excerpt: "",
       content: "",
-      date: new Date().toLocaleDateString("sr-Latn-RS", { day: "numeric", month: "long", year: "numeric" }) + ".",
+      date: new Date().toLocaleDateString("sr-Latn-RS", { day: "numeric", month: "long", year: "numeric" }),
       category: "edukacija",
       image: "/forestry-news.jpg",
       gallery: "",
@@ -328,7 +328,7 @@ export default function AdminPage() {
     const newDocument = {
       id: documentId,
       ...documentForm,
-      uploadDate: new Date().toLocaleDateString("sr-Latn-RS", { day: "numeric", month: "long", year: "numeric" }) + ".",
+      uploadDate: new Date().toLocaleDateString("sr-Latn-RS", { day: "numeric", month: "long", year: "numeric" }),
     }
 
     let updated = loadedDocuments

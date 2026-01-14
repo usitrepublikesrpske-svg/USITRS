@@ -103,6 +103,13 @@ export default async function NewsArticlePage({ params }: NewsArticlePageProps) 
                 <div></div>
               )}
 
+              <Link
+                href="/news"
+                className="flex items-center gap-2 px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors md:mx-auto"
+              >
+                ← Назад на вијести
+              </Link>
+
               {nextArticle ? (
                 <Link
                   href={`/news/${nextArticle.slug}`}
