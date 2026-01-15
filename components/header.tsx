@@ -39,9 +39,11 @@ export function Header() {
     { href: "/news", label: "Вијести" },
     { href: "/zanimljivosti", label: "Занимљивости" },
     { href: "/dokumenti", label: "Документи" },
+    { href: "/o-nama", label: "О нама" },
+    { href: "/kontakt", label: "Контакт" }, // додат линк на контакт страницу уместо hash линка
   ]
 
-  const hashLinks = [{ id: "kontakt", label: "Контакт" }]
+  const hashLinks = []
 
   return (
     <header className="sticky top-0 z-50 bg-green-900 border-b border-green-950 shadow-md">
@@ -78,16 +80,6 @@ export function Header() {
               )
             })}
 
-            {hashLinks.map((link) => (
-              <button
-                key={link.id}
-                onClick={() => scrollToSection(link.id)}
-                className="text-sm font-semibold transition-colors relative pb-2 text-green-100 hover:text-white after:absolute after:bottom-0 after:left-0 after:h-0.5 after:bg-white after:transition-all after:duration-200 after:w-0 hover:after:w-full"
-              >
-                {link.label}
-              </button>
-            ))}
-
             <Link
               href="/admin"
               className={`text-sm font-semibold transition-colors relative pb-2 ${
@@ -122,15 +114,6 @@ export function Header() {
               >
                 {link.label}
               </Link>
-            ))}
-            {hashLinks.map((link) => (
-              <button
-                key={link.id}
-                onClick={() => scrollToSection(link.id)}
-                className="text-sm font-semibold text-green-100 hover:text-white py-2 px-2 border-b border-green-800 text-left"
-              >
-                {link.label}
-              </button>
             ))}
             <Link
               href="/admin"

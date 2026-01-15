@@ -22,7 +22,6 @@ export const documents: Document[] = [
     uploadDate: "15. Децембар 2025.",
     size: "2.4 MB",
   },
-  
 ]
 
 export const documentCategories = [
@@ -34,15 +33,9 @@ export const documentCategories = [
 ]
 
 export function getDocumentsFromStorage(): Document[] {
-  if (typeof window === "undefined") return documents
-  try {
-    const stored = localStorage.getItem("customDocuments")
-    if (stored) {
-      const customDocs = JSON.parse(stored)
-      return [...customDocs, ...documents]
-    }
-  } catch (error) {
-    console.error("Грешка при учитавању докумената:", error)
-  }
-  return documents
+  return documents.sort((a, b) => {
+    const dateA = new Date(a.uploadDate).getTime()
+    const dateB = new Date(b.uploadDate).getTime()
+    return dateB - dateA
+  })
 }

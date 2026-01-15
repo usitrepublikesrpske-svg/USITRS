@@ -3,7 +3,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { newsItems, getNewsBySlug } from "@/lib/news-data"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 interface NewsArticlePageProps {
   params: Promise<{ slug: string }>
@@ -76,7 +76,7 @@ export default async function NewsArticlePage({ params }: NewsArticlePageProps) 
             <div className="flex gap-4 mb-8 pb-8 border-b border-gray-200 text-sm text-gray-600">
               <span>{article.date}</span>
               <span>{article.comments} коментара</span>
-              <span>{article.views} прегледа</span>
+              <ViewCounter slug={slug} initialViews={article.views} />
             </div>
 
             <div className="prose prose-lg max-w-none text-gray-700">{article.content}</div>
@@ -127,6 +127,25 @@ export default async function NewsArticlePage({ params }: NewsArticlePageProps) 
       </article>
     </main>
   )
+}
+
+// Додан компонент за бројач посјета
+function ViewCounter({ slug, initialViews }: { slug: string; initialViews: number }) {
+  const [views, setViews] = useState(initialViews)
+
+  useEffect(() => {
+    const viewsKey = `views-${slug}`
+    const lastViewed = localStorage.getItem(viewsKey)
+    const now = Date.now()
+
+    if (!lastViewed || now - Number.parseInt(lastViewed) > 3600000) {
+      const newViews = views + 1
+      setViews(newViews)
+      localStorage.setItem(viewsKey, now.toString())
+    }
+  }, [slug, views])
+
+  return <span>{views} прегледа</span>
 }
 
 function GalleryGrid({ images }: { images: string[] }) {
