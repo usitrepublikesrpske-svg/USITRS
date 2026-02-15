@@ -5,7 +5,7 @@ export interface FunFact {
   title: string
   fact: string
   date: string
-  dateSort: number
+  dateSort: number // Додавање поља за сортирање датума
   category: string
   categoryLabel: string
   source?: string
@@ -15,29 +15,15 @@ export interface FunFact {
   contentHtml?: string
 }
 
+const hardcodedFunFacts: FunFact[] = []
+
 export const funFactsItems: FunFact[] = []
 
 export function getAllFunFacts(): FunFact[] {
-  let combined = [...funFactsItems]
-
-  if (typeof window !== "undefined") {
-    try {
-      const stored = localStorage.getItem("customFunFacts")
-      if (stored && stored.length > 2) {
-        const parsed = JSON.parse(stored)
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          combined = [...parsed, ...combined]
-        }
-      }
-    } catch (error) {
-      console.error("[v0] Error loading fun facts:", error)
-    }
-  }
-
-  const unique = Array.from(new Map(combined.map((item) => [item.id, item])).values())
-  return unique.sort((a, b) => (b.dateSort || 0) - (a.dateSort || 0))
+  // Vraća samo hardcoded zanимљивости - bez localStorage
+  return funFactsItems.sort((a, b) => b.dateSort - a.dateSort)
 }
 
 export function getFunFactBySlug(slug: string): FunFact | null {
-  return getAllFunFacts().find((fact) => fact.slug === slug) || null
+  return funFactsItems.find((fact) => fact.slug === slug) || null
 }
