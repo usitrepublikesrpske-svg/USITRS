@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { ChevronLeft, ChevronRight, MessageCircle, Eye } from "lucide-react"
-import { getNewsFromStorageWithHardcoded } from "@/lib/news-data"npm run devicePixelRatio
+import { getNewsFromStorageWithHardcoded } from "@/lib/news-data"
 import type { NewsItem } from "@/lib/news-data"
 
 const ITEMS_PER_PAGE = 3

@@ -3,14 +3,21 @@
 import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { getLatestNews } from "@/lib/news-data"
+import { getLatestNews, type NewsItem } from "@/lib/news-data"
 
 export function NewsGrid() {
-  const cards = getLatestNews(6)
+  const [cards, setCards] = useState<NewsItem[]>([])
   const [visibleCards, setVisibleCards] = useState<Set<number>>(new Set())
   const observerRef = useRef<IntersectionObserver | null>(null)
 
   useEffect(() => {
+    const news = getLatestNews(6)
+    setCards(news)
+  }, [])
+
+  useEffect(() => {
+    if (cards.length === 0) return
+
     observerRef.current = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -31,7 +38,25 @@ export function NewsGrid() {
     return () => {
       observerRef.current?.disconnect()
     }
-  }, [])
+  }, [cards])
+
+  if (cards.length === 0) {
+    return (
+      <section id="vijesti" className="py-24 bg-white">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-green-800 mb-4">Најновије вијести</h2>
+            <p className="text-lg text-gray-600">
+              Останите информисани о активностима удружења и новостима из области шумарства
+            </p>
+          </div>
+          <div className="text-center py-12">
+            <p className="text-gray-500">Тренутно нема објављених вијести.</p>
+          </div>
+        </div>
+      </section>
+    )
+  }
 
   return (
     <section id="vijesti" className="py-24 bg-white">
