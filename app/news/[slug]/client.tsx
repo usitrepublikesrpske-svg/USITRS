@@ -89,10 +89,16 @@ export default function NewsArticleClient({ article, allNews, slug }: any) {
               <span>{views} прегледа</span>
             </div>
 
-            <div
-              className="prose prose-lg max-w-none text-gray-700"
-              dangerouslySetInnerHTML={{ __html: article.contentHtml || "<p>Садржај није доступан.</p>" }}
-            />
+            {article.contentHtml ? (
+              <div
+                className="prose prose-lg max-w-none text-gray-700"
+                dangerouslySetInnerHTML={{ __html: article.contentHtml }}
+              />
+            ) : (
+              <div className="prose prose-lg max-w-none text-gray-700">
+                <p>{article.excerpt || "Садржај није доступан."}</p>
+              </div>
+            )}
 
             {/* Gallery */}
             {article.gallery && article.gallery.length > 0 && (
