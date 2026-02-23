@@ -72,7 +72,7 @@
     "tw-animate-css": "1.3.3",
     "typescript": "^5"
   },
-  "packageManager": "pnpm@8",
+  "packageManager": "pnpm@8.x",
   "engines": {
     "node": ">=18 <19"
   }
