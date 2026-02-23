@@ -28,3 +28,4 @@ export default async function NewsArticlePage({ params }: NewsArticlePageProps) 
   }
 
   return <NewsArticleClient article={article} allNews={allNews} slug={slug} />
+}
